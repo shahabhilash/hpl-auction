@@ -115,7 +115,7 @@ export default function Auction() {
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
                 placeholder="e.g. 1500"
-                className="w-full text-4xl font-black text-center py-4 rounded-xl border-2 border-border focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all bg-muted/50"
+                className="w-full text-4xl font-black text-center py-4 rounded-xl border-2 border-border focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all bg-muted/50 text-black"
               />
             </div>
 
