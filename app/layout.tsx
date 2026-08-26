@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const oswald = Oswald({ subsets: ["latin"], variable: "--font-oswald" });
 
 export const metadata: Metadata = {
-  title: "Hostel House Auction",
+  title: "HPL Auction | Command Center",
   description: "Inter-house sports tournament and auction management",
 };
 
@@ -16,10 +17,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} flex h-screen overflow-hidden`}>
+    <html lang="en" className="dark">
+      <body className={`${inter.variable} ${oswald.variable} font-sans flex h-screen overflow-hidden selection:bg-primary/30 selection:text-primary`}>
         <Sidebar />
-        <main className="flex-1 overflow-y-auto flex flex-col">
+        <main className="flex-1 overflow-y-auto flex flex-col bg-background">
           {children}
         </main>
       </body>

@@ -22,7 +22,7 @@ export function Sidebar() {
   return (
     <>
       <button 
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-card rounded-md shadow-sm border border-border"
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-card text-foreground shadow-sm border border-border"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -32,10 +32,10 @@ export function Sidebar() {
         fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:block
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
-        <div className="flex items-center justify-center h-16 border-b border-border">
-          <span className="text-xl font-bold text-primary">HPL Auction</span>
+        <div className="flex items-center justify-center h-20 border-b border-border bg-background/50">
+          <span className="text-3xl font-display font-black tracking-widest text-primary uppercase">HPL<span className="text-foreground">Auction</span></span>
         </div>
-        <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100vh-4rem)]">
+        <nav className="p-3 space-y-1 overflow-y-auto h-[calc(100vh-5rem)]">
           {links.map((link) => {
             const isActive = pathname === link.href || (pathname === '/' && link.href === '/dashboard');
             return (
@@ -44,12 +44,17 @@ export function Sidebar() {
                 href={link.href}
                 onClick={() => setIsOpen(false)}
                 className={`
-                  flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors
-                  ${isActive ? "bg-primary text-primary-foreground font-medium shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}
+                  flex items-center space-x-3 px-4 py-3 transition-all relative overflow-hidden group
+                  ${isActive ? "text-foreground bg-muted/80 font-bold" : "text-muted-foreground hover:bg-muted hover:text-foreground font-medium"}
                 `}
               >
-                {link.icon}
-                <span>{link.label}</span>
+                {isActive && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary glow-primary" />
+                )}
+                <div className={`transition-transform duration-200 ${isActive ? "scale-110 text-primary" : "group-hover:scale-110"}`}>
+                  {link.icon}
+                </div>
+                <span className="tracking-wide">{link.label}</span>
               </Link>
             )
           })}
@@ -57,7 +62,7 @@ export function Sidebar() {
       </div>
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-30 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}

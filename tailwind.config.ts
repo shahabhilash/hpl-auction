@@ -11,14 +11,30 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        primary: "var(--primary)",
-        "primary-foreground": "var(--primary-foreground)",
-        muted: "var(--muted)",
-        "muted-foreground": "var(--muted-foreground)",
+        primary: {
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
+        },
+        muted: {
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
+        },
         border: "var(--border)",
-        card: "var(--card)",
-        "card-foreground": "var(--card-foreground)",
+        card: {
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
+        },
+        accent: "var(--accent)",
       },
+      fontFamily: {
+        sans: ["var(--font-inter)", "sans-serif"],
+        display: ["var(--font-oswald)", "sans-serif"],
+      },
+      borderRadius: {
+        lg: "0.25rem",
+        md: "0.125rem",
+        sm: "0px",
+      }
     },
   },
   plugins: [],

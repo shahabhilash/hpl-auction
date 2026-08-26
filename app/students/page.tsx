@@ -9,57 +9,61 @@ export default function Students() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="Students" />
+      <PageHeader title="Students Database" />
       <div className="p-6 space-y-6 flex-1 bg-background">
+        {/* Filters */}
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <input 
             type="text" 
-            placeholder="Search students..." 
-            className="px-4 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full md:w-64"
+            placeholder="SEARCH STUDENTS..." 
+            className="px-4 py-3 border-2 border-border/50 rounded-none bg-card text-foreground font-bold tracking-wider uppercase text-sm focus:outline-none focus:border-primary transition-colors w-full md:w-80"
           />
           <div className="flex gap-2">
-            <select className="px-4 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-              <option>All Sports</option>
-              <option>Cricket</option>
-              <option>Basketball</option>
+            <select className="px-4 py-3 border-2 border-border/50 rounded-none bg-card text-foreground font-bold tracking-wider uppercase text-sm focus:outline-none focus:border-primary transition-colors appearance-none cursor-pointer">
+              <option>ALL SPORTS</option>
+              <option>CRICKET</option>
+              <option>BASKETBALL</option>
             </select>
-            <select className="px-4 py-2 border border-border rounded-md bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-              <option>All Houses</option>
-              <option>House A</option>
-              <option>Unassigned</option>
+            <select className="px-4 py-3 border-2 border-border/50 rounded-none bg-card text-foreground font-bold tracking-wider uppercase text-sm focus:outline-none focus:border-primary transition-colors appearance-none cursor-pointer">
+              <option>ALL HOUSES</option>
+              <option>HOUSE A</option>
+              <option>UNASSIGNED</option>
             </select>
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+        {/* Data Table */}
+        <div className="bg-card border border-border/50 relative overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-muted border-b border-border">
-                  <th className="px-4 py-3 font-semibold text-muted-foreground">Name</th>
-                  <th className="px-4 py-3 font-semibold text-muted-foreground">Roll Number</th>
-                  <th className="px-4 py-3 font-semibold text-muted-foreground">Rating</th>
-                  <th className="px-4 py-3 font-semibold text-muted-foreground">Sports</th>
-                  <th className="px-4 py-3 font-semibold text-muted-foreground">House</th>
-                  <th className="px-4 py-3 font-semibold text-muted-foreground">Status</th>
+                <tr className="bg-muted/80 border-b border-border/50">
+                  <th className="px-6 py-4 font-bold text-muted-foreground uppercase tracking-widest text-xs">Name</th>
+                  <th className="px-6 py-4 font-bold text-muted-foreground uppercase tracking-widest text-xs">Roll No</th>
+                  <th className="px-6 py-4 font-bold text-muted-foreground uppercase tracking-widest text-xs text-center">Rating</th>
+                  <th className="px-6 py-4 font-bold text-muted-foreground uppercase tracking-widest text-xs">Sports</th>
+                  <th className="px-6 py-4 font-bold text-muted-foreground uppercase tracking-widest text-xs">House</th>
+                  <th className="px-6 py-4 font-bold text-muted-foreground uppercase tracking-widest text-xs">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {students.map((student) => (
-                  <tr key={student.id} className="border-b border-border last:border-0 hover:bg-muted/50">
-                    <td className="px-4 py-3 font-medium">{student.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{student.roll}</td>
-                    <td className="px-4 py-3">{student.rating}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
+                  <tr key={student.id} className="border-b border-border/30 last:border-0 hover:bg-muted/40 transition-colors group">
+                    <td className="px-6 py-4 font-bold text-foreground text-lg">{student.name}</td>
+                    <td className="px-6 py-4 font-mono text-muted-foreground">{student.roll}</td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="font-display font-bold text-xl text-primary">{student.rating}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-2">
                         {student.sports.map(s => (
-                          <span key={s} className="bg-muted text-xs px-2 py-1 rounded border border-border">{s}</span>
+                          <span key={s} className="bg-muted text-xs px-2 py-1 border border-border/50 font-bold uppercase tracking-wider text-muted-foreground">{s}</span>
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-3">{student.house}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-1 rounded-full ${student.status === 'Available' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'}`}>
+                    <td className="px-6 py-4 font-bold text-muted-foreground uppercase tracking-wider">{student.house}</td>
+                    <td className="px-6 py-4">
+                      <span className={`text-xs px-3 py-1.5 font-bold uppercase tracking-widest border clip-angled ${student.status === 'Available' ? 'bg-accent/10 text-accent border-accent/50' : 'bg-muted text-muted-foreground border-border'}`}>
                         {student.status}
                       </span>
                     </td>
