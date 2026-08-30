@@ -147,7 +147,7 @@ export default function Auction() {
                     key={house.id}
                     onClick={() => setSelectedHouse(house.id)}
                     className={`
-                      font-display font-bold text-xl uppercase tracking-wider py-4 transition-all clip-angled border-2 outline-none
+                      font-display font-bold text-xl uppercase tracking-wider py-4 transition-all rounded-xl border-2 outline-none
                       ${selectedHouse === house.id 
                         ? `${house.baseColor} border-${house.ringColor} text-white glow-primary scale-105 z-10` 
                         : house.fadedClass}
