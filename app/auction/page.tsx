@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { Search } from "lucide-react"; 
+import { Search, Users, ChevronDown, ChevronUp } from "lucide-react"; 
 import { createClient } from "@/utils/supabase/client";
 
 export default function Auction() {
@@ -13,6 +13,12 @@ export default function Auction() {
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
+  // Roster States
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [roster, setRoster] = useState<any[]>([]);
+  const [rosterFilter, setRosterFilter] = useState<'Available' | 'Sold' | 'Unsold'>('Available');
+  const [showRoster, setShowRoster] = useState(true);
+
   const houses = [
     { id: "tons", name: "Tons Tigers", baseColor: "bg-orange-600", ringColor: "ring-orange-500", text: "text-orange-500", fadedClass: "bg-orange-500/10 border-orange-500/30 text-orange-500 hover:bg-orange-500/20 hover:border-orange-500/50" },
     { id: "shimsha", name: "Shimsha Panther", baseColor: "bg-sky-600", ringColor: "ring-sky-500", text: "text-sky-400", fadedClass: "bg-sky-400/10 border-sky-400/30 text-sky-400 hover:bg-sky-400/20 hover:border-sky-400/50" },
@@ -22,6 +28,17 @@ export default function Auction() {
     { id: "harangi", name: "Harangi Jaguars", baseColor: "bg-green-600", ringColor: "ring-green-500", text: "text-green-500", fadedClass: "bg-green-500/10 border-green-500/30 text-green-500 hover:bg-green-500/20 hover:border-green-500/50" },
     { id: "arkavati", name: "Arkavati Lions", baseColor: "bg-yellow-500", ringColor: "ring-yellow-400", text: "text-yellow-500", fadedClass: "bg-yellow-500/10 border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/20 hover:border-yellow-500/50" },
   ];
+
+  useEffect(() => {
+    const fetchRoster = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from('students').select('*').order('name');
+      if (data) setRoster(data);
+    };
+    fetchRoster();
+  }, []);
+
+  const filteredRoster = roster.filter(s => s.status === rosterFilter);
 
   const handleLoad = async () => {
     if (!searchRoll) return;
@@ -39,8 +56,17 @@ export default function Auction() {
       setStudent(null);
     } else {
       setStudent(data);
+      // Auto-collapse roster when searching manually to save space
+      setShowRoster(false);
     }
     setLoading(false);
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const loadFromRoster = (player: any) => {
+    setStudent(player);
+    setSearchRoll(player.roll_no);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSold = async () => {
@@ -102,6 +128,9 @@ export default function Auction() {
 
     alert(`Success! ${student.name} sold to ${houseName} for ₹${bidAmount}.`);
     
+    // Update local roster instantly
+    setRoster(roster.map(s => s.id === student.id ? { ...s, status: 'Sold', house_id: selectedHouse, sold_price: Number(bidAmount) } : s));
+
     setBidAmount("");
     setSelectedHouse(null);
     setStudent(null);
@@ -126,6 +155,10 @@ export default function Auction() {
       }
       
       alert(`${student.name} marked as Unsold.`);
+      
+      // Update local roster instantly
+      setRoster(roster.map(s => s.id === student.id ? { ...s, status: 'Unsold' } : s));
+
       setBidAmount("");
       setSelectedHouse(null);
       setStudent(null);
@@ -142,25 +175,91 @@ export default function Auction() {
       <div className="p-4 md:p-8 flex-1 flex flex-col md:flex-row gap-8 max-w-[90rem] mx-auto w-full relative z-10">
         
         <div className="flex-1 flex flex-col gap-6">
-          <div className="bg-card/80 backdrop-blur-sm p-4 border border-border/50 flex items-center gap-4 clip-angled">
-             <div className="relative flex-1">
-               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary w-5 h-5" />
-               <input 
-                 type="text" 
-                 value={searchRoll}
-                 onChange={(e) => setSearchRoll(e.target.value)}
-                 onKeyDown={(e) => e.key === 'Enter' && handleLoad()}
-                 placeholder="ENTER REGISTRATION NUMBER..." 
-                 className="w-full pl-12 pr-4 py-3 bg-background border border-border/50 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-primary transition-colors text-foreground"
-               />
-             </div>
-             <button 
-               onClick={handleLoad}
-               disabled={loading}
-               className="bg-primary/10 text-primary border border-primary/50 px-6 py-3 font-bold uppercase tracking-widest text-sm hover:bg-primary hover:text-white transition-all clip-angled disabled:opacity-50"
-             >
-               {loading ? 'LOADING...' : 'LOAD PLAYER'}
-             </button>
+          
+          {/* Top Controls: Search OR Browse */}
+          <div className="flex flex-col gap-4">
+            {/* Search Bar */}
+            <div className="bg-card/80 backdrop-blur-sm p-4 border border-border/50 flex items-center gap-4 clip-angled shadow-lg">
+               <div className="relative flex-1">
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary w-5 h-5" />
+                 <input 
+                   type="text" 
+                   value={searchRoll}
+                   onChange={(e) => setSearchRoll(e.target.value)}
+                   onKeyDown={(e) => e.key === 'Enter' && handleLoad()}
+                   placeholder="ENTER REGISTRATION NUMBER..." 
+                   className="w-full pl-12 pr-4 py-3 bg-background border border-border/50 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-primary transition-colors text-foreground"
+                 />
+               </div>
+               <button 
+                 onClick={handleLoad}
+                 disabled={loading}
+                 className="bg-primary/10 text-primary border border-primary/50 px-6 py-3 font-bold uppercase tracking-widest text-sm hover:bg-primary hover:text-white transition-all clip-angled disabled:opacity-50"
+               >
+                 {loading ? 'LOADING...' : 'LOAD PLAYER'}
+               </button>
+            </div>
+
+            {/* Roster Panel */}
+            <div className="bg-card border border-border/50 clip-angled flex flex-col">
+              <button 
+                onClick={() => setShowRoster(!showRoster)}
+                className="flex items-center justify-between p-4 bg-muted/50 hover:bg-muted transition-colors outline-none"
+              >
+                <div className="flex items-center gap-3">
+                  <Users className="text-primary w-5 h-5" />
+                  <span className="font-bold uppercase tracking-widest text-sm">Browse Roster</span>
+                </div>
+                {showRoster ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
+              </button>
+
+              {showRoster && (
+                <div className="p-4 border-t border-border/50 flex flex-col gap-4">
+                  {/* Filter Tabs */}
+                  <div className="flex gap-2 p-1 bg-background border border-border/50 clip-angled">
+                    {(['Available', 'Sold', 'Unsold'] as const).map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => setRosterFilter(status)}
+                        className={`
+                          flex-1 py-2 text-xs font-bold uppercase tracking-widest transition-colors clip-angled
+                          ${rosterFilter === status ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}
+                        `}
+                      >
+                        {status} ({roster.filter(s => s.status === status).length})
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Scrollable List */}
+                  <div className="max-h-64 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                    {filteredRoster.length > 0 ? (
+                      filteredRoster.map((player) => (
+                        <button
+                          key={player.id}
+                          onClick={() => loadFromRoster(player)}
+                          className="w-full text-left bg-background border border-border/50 p-3 flex justify-between items-center hover:border-primary/50 group transition-colors clip-angled"
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-bold text-foreground group-hover:text-primary transition-colors">{player.name}</span>
+                            <span className="text-xs font-mono text-muted-foreground">{player.roll_no}</span>
+                          </div>
+                          {player.status === 'Sold' ? (
+                            <span className="text-xs font-bold uppercase text-red-500 bg-red-500/10 px-2 py-1">₹{player.sold_price}</span>
+                          ) : (
+                            <span className="text-xs font-bold uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="text-center p-4 text-sm font-bold uppercase tracking-widest text-muted-foreground border border-dashed border-border/50 clip-angled">
+                        No {rosterFilter} players found.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="bg-card border border-border/50 flex flex-col overflow-hidden relative group clip-angled h-full min-h-[400px]">
@@ -173,12 +272,12 @@ export default function Auction() {
                   
                   {student.status === 'Sold' && (
                     <div className="absolute top-4 right-4 rotate-12 z-20">
-                      <span className="border-4 border-red-500 text-red-500 font-black text-2xl uppercase tracking-widest px-4 py-1 inline-block bg-background/90 clip-angled">SOLD</span>
+                      <span className="border-4 border-red-500 text-red-500 font-black text-2xl uppercase tracking-widest px-4 py-1 inline-block bg-background/90 clip-angled shadow-lg">SOLD</span>
                     </div>
                   )}
                   {student.status === 'Unsold' && (
                     <div className="absolute top-4 right-4 rotate-12 z-20">
-                      <span className="border-4 border-muted-foreground text-muted-foreground font-black text-2xl uppercase tracking-widest px-4 py-1 inline-block bg-background/90 clip-angled">UNSOLD</span>
+                      <span className="border-4 border-muted-foreground text-muted-foreground font-black text-2xl uppercase tracking-widest px-4 py-1 inline-block bg-background/90 clip-angled shadow-lg">UNSOLD</span>
                     </div>
                   )}
 
@@ -206,14 +305,14 @@ export default function Auction() {
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-muted-foreground/50">
                 <Search className="w-16 h-16 mb-4 opacity-50" />
                 <p className="font-bold uppercase tracking-widest text-lg">No Player Loaded</p>
-                <p className="text-sm mt-2">Enter a registration number above to load their profile.</p>
+                <p className="text-sm mt-2 max-w-sm text-center">Enter a registration number above or browse the roster to load their profile.</p>
               </div>
             )}
           </div>
         </div>
 
         <div className="w-full md:w-[32rem] flex flex-col gap-6">
-          <div className="bg-card border border-border/50 p-8 flex flex-col gap-8 clip-angled relative">
+          <div className="bg-card border border-border/50 p-8 flex flex-col gap-8 clip-angled relative shadow-lg">
             <div className="text-center">
               <h2 className="text-3xl font-display font-black text-foreground uppercase tracking-widest flex items-center justify-center gap-3">
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
@@ -248,7 +347,7 @@ export default function Auction() {
                     className={`
                       font-display font-bold text-xl uppercase tracking-wider py-4 transition-all rounded-xl border-2 outline-none
                       ${selectedHouse === house.id 
-                        ? `${house.baseColor} border-${house.ringColor} text-white glow-primary scale-105 z-10` 
+                        ? `${house.baseColor} border-${house.ringColor} text-white glow-primary scale-105 z-10 shadow-lg` 
                         : house.fadedClass}
                       disabled:opacity-50 disabled:cursor-not-allowed
                     `}
