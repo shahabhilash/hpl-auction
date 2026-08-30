@@ -17,6 +17,7 @@ export default function Auction() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [roster, setRoster] = useState<any[]>([]);
   const [rosterFilter, setRosterFilter] = useState<'Available' | 'Sold' | 'Unsold'>('Available');
+  const [sportFilter, setSportFilter] = useState<string>('All');
   const [showRoster, setShowRoster] = useState(true);
 
   const houses = [
@@ -38,7 +39,13 @@ export default function Auction() {
     fetchRoster();
   }, []);
 
-  const filteredRoster = roster.filter(s => s.status === rosterFilter);
+  const uniqueSports = Array.from(new Set(roster.flatMap(s => s.sports || []))).sort();
+  
+  const filteredRoster = roster.filter(s => {
+    const statusMatch = s.status === rosterFilter;
+    const sportMatch = sportFilter === 'All' || (s.sports && s.sports.includes(sportFilter));
+    return statusMatch && sportMatch;
+  });
 
   const handleLoad = async () => {
     if (!searchRoll) return;
@@ -215,6 +222,21 @@ export default function Auction() {
 
               {showRoster && (
                 <div className="p-4 border-t border-border/50 flex flex-col gap-4">
+                  {/* Sport Filter */}
+                  <div className="flex gap-2 p-2 bg-background border border-border/50 clip-angled items-center">
+                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-2">Sport:</span>
+                    <select 
+                      value={sportFilter} 
+                      onChange={(e) => setSportFilter(e.target.value)}
+                      className="flex-1 bg-transparent border-none text-sm font-bold text-foreground focus:ring-0 outline-none uppercase tracking-widest cursor-pointer"
+                    >
+                      <option value="All">All Sports</option>
+                      {uniqueSports.map((sport: any) => (
+                        <option key={sport} value={sport}>{sport}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   {/* Filter Tabs */}
                   <div className="flex gap-2 p-1 bg-background border border-border/50 clip-angled">
                     {(['Available', 'Sold', 'Unsold'] as const).map((status) => (
