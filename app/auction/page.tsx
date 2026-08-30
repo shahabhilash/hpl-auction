@@ -10,8 +10,8 @@ export default function Auction() {
 
   const houses = [
     { id: "tons", name: "Tons Tigers", baseColor: "bg-orange-600", ringColor: "ring-orange-500", text: "text-orange-500", fadedClass: "bg-orange-500/10 border-orange-500/30 text-orange-500 hover:bg-orange-500/20 hover:border-orange-500/50" },
-    { id: "shimsha", name: "Shimsha Panther", baseColor: "bg-sky-600", ringColor: "ring-sky-500", text: "text-sky-500", fadedClass: "bg-sky-500/10 border-sky-500/30 text-sky-500 hover:bg-sky-500/20 hover:border-sky-500/50" },
-    { id: "orsang", name: "Orsang Leopards", baseColor: "bg-blue-800", ringColor: "ring-blue-700", text: "text-blue-500", fadedClass: "bg-blue-500/10 border-blue-500/30 text-blue-500 hover:bg-blue-500/20 hover:border-blue-500/50" },
+    { id: "shimsha", name: "Shimsha Panther", baseColor: "bg-sky-600", ringColor: "ring-sky-500", text: "text-sky-400", fadedClass: "bg-sky-400/10 border-sky-400/30 text-sky-400 hover:bg-sky-400/20 hover:border-sky-400/50" },
+    { id: "orsang", name: "Orsang Leopards", baseColor: "bg-blue-800", ringColor: "ring-blue-700", text: "text-blue-500", fadedClass: "bg-blue-900/30 border-blue-800/60 text-blue-500 hover:bg-blue-900/50 hover:border-blue-700/60" },
     { id: "ken", name: "Ken Cheetas", baseColor: "bg-red-600", ringColor: "ring-red-500", text: "text-red-500", fadedClass: "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50" },
     { id: "kabini", name: "Kabini Lynx", baseColor: "bg-purple-600", ringColor: "ring-purple-500", text: "text-purple-500", fadedClass: "bg-purple-500/10 border-purple-500/30 text-purple-500 hover:bg-purple-500/20 hover:border-purple-500/50" },
     { id: "harangi", name: "Harangi Jaguars", baseColor: "bg-green-600", ringColor: "ring-green-500", text: "text-green-500", fadedClass: "bg-green-500/10 border-green-500/30 text-green-500 hover:bg-green-500/20 hover:border-green-500/50" },
