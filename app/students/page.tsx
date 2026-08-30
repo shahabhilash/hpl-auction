@@ -12,6 +12,19 @@ export default async function Students() {
     
   const studentsList = students || [];
 
+  const getHouseColor = (houseId: string | null) => {
+    switch (houseId) {
+      case 'tons': return 'bg-orange-500/10 hover:bg-orange-500/20';
+      case 'shimsha': return 'bg-sky-400/10 hover:bg-sky-400/20';
+      case 'orsang': return 'bg-blue-900/30 hover:bg-blue-900/50';
+      case 'ken': return 'bg-red-500/10 hover:bg-red-500/20';
+      case 'kabini': return 'bg-purple-500/10 hover:bg-purple-500/20';
+      case 'harangi': return 'bg-green-500/10 hover:bg-green-500/20';
+      case 'arkavati': return 'bg-yellow-500/10 hover:bg-yellow-500/20';
+      default: return 'hover:bg-muted/40';
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <PageHeader title="Students Database" />
@@ -51,7 +64,7 @@ export default async function Students() {
               </thead>
               <tbody>
                 {studentsList.map((student) => (
-                  <tr key={student.id} className="border-b border-border/30 last:border-0 hover:bg-muted/40 transition-colors group">
+                  <tr key={student.id} className={`border-b border-border/30 last:border-0 transition-colors group ${getHouseColor(student.house_id)}`}>
                     <td className="px-6 py-4 font-bold text-foreground text-lg">{student.name}</td>
                     <td className="px-6 py-4 font-mono text-muted-foreground">{student.roll_no}</td>
                     <td className="px-6 py-4">
