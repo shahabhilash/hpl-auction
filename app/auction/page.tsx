@@ -63,6 +63,36 @@ export default function Auction() {
     const houseName = houses.find(h => h.id === selectedHouse)?.name;
     const supabase = createClient();
     
+    // 1. Fetch house budget
+    const { data: houseData, error: houseFetchError } = await supabase
+      .from('houses')
+      .select('budget')
+      .eq('id', selectedHouse)
+      .single();
+      
+    if (houseFetchError || !houseData) {
+      alert("Error fetching house budget. Is the houses table created?");
+      return;
+    }
+    
+    if (houseData.budget < Number(bidAmount)) {
+      alert(`Insufficient funds! ${houseName} only has ₹${houseData.budget.toLocaleString()} left.`);
+      return;
+    }
+    
+    // 2. Deduct budget
+    const newBudget = houseData.budget - Number(bidAmount);
+    const { error: houseUpdateError } = await supabase
+      .from('houses')
+      .update({ budget: newBudget })
+      .eq('id', selectedHouse);
+      
+    if (houseUpdateError) {
+      alert("Error updating house budget: " + houseUpdateError.message);
+      return;
+    }
+
+    // 3. Update student status
     const { error } = await supabase
       .from('students')
       .update({ status: 'Sold', house_id: selectedHouse, sold_price: Number(bidAmount) })
