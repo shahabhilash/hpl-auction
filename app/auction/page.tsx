@@ -9,13 +9,13 @@ export default function Auction() {
   const [selectedHouse, setSelectedHouse] = useState<string | null>(null);
 
   const houses = [
-    { id: "tons", name: "Tons Tigers", baseColor: "bg-orange-600", ringColor: "ring-orange-500", text: "text-orange-500" },
-    { id: "shimsha", name: "Shimsha Panther", baseColor: "bg-sky-600", ringColor: "ring-sky-500", text: "text-sky-500" },
-    { id: "orsang", name: "Orsang Leopards", baseColor: "bg-blue-800", ringColor: "ring-blue-700", text: "text-blue-500" },
-    { id: "ken", name: "Ken Cheetas", baseColor: "bg-red-600", ringColor: "ring-red-500", text: "text-red-500" },
-    { id: "kabini", name: "Kabini Lynx", baseColor: "bg-purple-600", ringColor: "ring-purple-500", text: "text-purple-500" },
-    { id: "harangi", name: "Harangi Jaguars", baseColor: "bg-green-600", ringColor: "ring-green-500", text: "text-green-500" },
-    { id: "arkavati", name: "Arkavati Lions", baseColor: "bg-yellow-500", ringColor: "ring-yellow-400", text: "text-yellow-500" },
+    { id: "tons", name: "Tons Tigers", baseColor: "bg-orange-600", ringColor: "ring-orange-500", text: "text-orange-500", fadedClass: "bg-orange-500/10 border-orange-500/30 text-orange-500 hover:bg-orange-500/20 hover:border-orange-500/50" },
+    { id: "shimsha", name: "Shimsha Panther", baseColor: "bg-sky-600", ringColor: "ring-sky-500", text: "text-sky-500", fadedClass: "bg-sky-500/10 border-sky-500/30 text-sky-500 hover:bg-sky-500/20 hover:border-sky-500/50" },
+    { id: "orsang", name: "Orsang Leopards", baseColor: "bg-blue-800", ringColor: "ring-blue-700", text: "text-blue-500", fadedClass: "bg-blue-500/10 border-blue-500/30 text-blue-500 hover:bg-blue-500/20 hover:border-blue-500/50" },
+    { id: "ken", name: "Ken Cheetas", baseColor: "bg-red-600", ringColor: "ring-red-500", text: "text-red-500", fadedClass: "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50" },
+    { id: "kabini", name: "Kabini Lynx", baseColor: "bg-purple-600", ringColor: "ring-purple-500", text: "text-purple-500", fadedClass: "bg-purple-500/10 border-purple-500/30 text-purple-500 hover:bg-purple-500/20 hover:border-purple-500/50" },
+    { id: "harangi", name: "Harangi Jaguars", baseColor: "bg-green-600", ringColor: "ring-green-500", text: "text-green-500", fadedClass: "bg-green-500/10 border-green-500/30 text-green-500 hover:bg-green-500/20 hover:border-green-500/50" },
+    { id: "arkavati", name: "Arkavati Lions", baseColor: "bg-yellow-500", ringColor: "ring-yellow-400", text: "text-yellow-500", fadedClass: "bg-yellow-500/10 border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/20 hover:border-yellow-500/50" },
   ];
 
   const handleSold = () => {
@@ -150,7 +150,7 @@ export default function Auction() {
                       font-display font-bold text-xl uppercase tracking-wider py-4 transition-all clip-angled border-2 outline-none
                       ${selectedHouse === house.id 
                         ? `${house.baseColor} border-${house.ringColor} text-white glow-primary scale-105 z-10` 
-                        : `bg-background border-border/50 text-muted-foreground hover:border-primary/50 hover:text-foreground`}
+                        : house.fadedClass}
                     `}
                   >
                     {house.name}
