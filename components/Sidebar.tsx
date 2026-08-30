@@ -22,7 +22,6 @@ export function Sidebar() {
     { href: "/sports", label: "Sports", icon: <Activity size={20} /> },
     { href: "/auction", label: "Auction", icon: <Gavel size={20} /> },
     { href: "/matches", label: "Matches", icon: <Calendar size={20} /> },
-    { href: "/leaderboard", label: "Leaderboard", icon: <Trophy size={20} /> },
     { href: "/settings", label: "Settings", icon: <Settings size={20} /> },
   ];
 
