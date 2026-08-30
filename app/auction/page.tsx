@@ -350,6 +350,7 @@ export default function Auction() {
                 type="number" 
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
+                onWheel={(e) => (e.target as HTMLElement).blur()}
                 disabled={!student || student.status !== 'Available'}
                 placeholder="0"
                 className="w-full text-7xl font-display font-black text-center py-6 bg-background border-2 border-border/50 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all text-white placeholder:text-muted-foreground/30 clip-diagonal outline-none disabled:opacity-50"
