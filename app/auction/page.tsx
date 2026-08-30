@@ -230,9 +230,9 @@ export default function Auction() {
                       onChange={(e) => setSportFilter(e.target.value)}
                       className="flex-1 bg-transparent border-none text-sm font-bold text-foreground focus:ring-0 outline-none uppercase tracking-widest cursor-pointer"
                     >
-                      <option value="All">All Sports</option>
+                      <option className="bg-background text-foreground font-sans" value="All">All Sports</option>
                       {uniqueSports.map((sport: any) => (
-                        <option key={sport} value={sport}>{sport}</option>
+                        <option className="bg-background text-foreground font-sans" key={sport} value={sport}>{sport}</option>
                       ))}
                     </select>
                   </div>
