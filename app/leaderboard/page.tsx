@@ -2,13 +2,13 @@ import { PageHeader } from "@/components/PageHeader";
 
 export default function Leaderboard() {
   const leaderboard = [
-    { rank: 1, house: "House C", matches: 5, wins: 4, losses: 1, points: 12 },
-    { rank: 2, house: "House A", matches: 5, wins: 3, losses: 2, points: 9 },
-    { rank: 3, house: "House E", matches: 5, wins: 3, losses: 2, points: 9 },
-    { rank: 4, house: "House G", matches: 5, wins: 2, losses: 3, points: 6 },
-    { rank: 5, house: "House B", matches: 5, wins: 2, losses: 3, points: 6 },
-    { rank: 6, house: "House D", matches: 5, wins: 2, losses: 3, points: 6 },
-    { rank: 7, house: "House F", matches: 5, wins: 1, losses: 4, points: 3 },
+    { rank: 1, house: "Orsang Leopards", matches: 5, wins: 4, losses: 1, points: 12 },
+    { rank: 2, house: "Tons Tigers", matches: 5, wins: 3, losses: 2, points: 9 },
+    { rank: 3, house: "Kabini Lynx", matches: 5, wins: 3, losses: 2, points: 9 },
+    { rank: 4, house: "Arkavati Lions", matches: 5, wins: 2, losses: 3, points: 6 },
+    { rank: 5, house: "Shimsha Panther", matches: 5, wins: 2, losses: 3, points: 6 },
+    { rank: 6, house: "Ken Cheetas", matches: 5, wins: 2, losses: 3, points: 6 },
+    { rank: 7, house: "Harangi Jaguars", matches: 5, wins: 1, losses: 4, points: 3 },
   ];
 
   return (

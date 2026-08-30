@@ -1,12 +1,19 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { Menu, X, LayoutDashboard, Users, Home, Activity, Gavel, Calendar, Trophy, Settings } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Menu, X, LayoutDashboard, Users, Home, Activity, Gavel, Calendar, Trophy, Settings, Sun, Moon } from "lucide-react";
+import { useTheme } from "./ThemeProvider";
 
 export function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
@@ -29,13 +36,13 @@ export function Sidebar() {
       </button>
 
       <div className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:block
+        fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static flex flex-col
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
-        <div className="flex items-center justify-center h-20 border-b border-border bg-background/50">
+        <div className="flex items-center justify-center h-20 border-b border-border bg-background/50 shrink-0">
           <span className="text-3xl font-display font-black tracking-widest text-primary uppercase">HPL<span className="text-foreground">Auction</span></span>
         </div>
-        <nav className="p-3 space-y-1 overflow-y-auto h-[calc(100vh-5rem)]">
+        <nav className="p-3 space-y-1 overflow-y-auto flex-1">
           {links.map((link) => {
             const isActive = pathname === link.href || (pathname === '/' && link.href === '/dashboard');
             return (
@@ -59,6 +66,18 @@ export function Sidebar() {
             )
           })}
         </nav>
+        <div className="p-4 border-t border-border shrink-0 bg-background/50 flex justify-between items-center">
+          <span className="text-sm font-medium text-muted-foreground">Theme</span>
+          {mounted && (
+            <button 
+              onClick={toggleTheme}
+              className="p-2 rounded-md bg-muted hover:bg-muted/80 text-foreground transition-colors"
+              aria-label="Toggle Theme"
+            >
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          )}
+        </div>
       </div>
       {isOpen && (
         <div 

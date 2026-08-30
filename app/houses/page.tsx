@@ -2,13 +2,13 @@ import { PageHeader } from "@/components/PageHeader";
 
 export default function Houses() {
   const houses = [
-    { name: "House A", color: "bg-red-500", budget: 10000, players: 12, rating: 4.1 },
-    { name: "House B", color: "bg-blue-500", budget: 8500, players: 14, rating: 3.9 },
-    { name: "House C", color: "bg-green-500", budget: 12000, players: 10, rating: 4.3 },
-    { name: "House D", color: "bg-yellow-500", budget: 9000, players: 13, rating: 4.0 },
-    { name: "House E", color: "bg-purple-500", budget: 11500, players: 11, rating: 4.2 },
-    { name: "House F", color: "bg-orange-500", budget: 10500, players: 12, rating: 3.8 },
-    { name: "House G", color: "bg-teal-500", budget: 10000, players: 12, rating: 4.1 },
+    { name: "Tons Tigers", color: "bg-orange-500", budget: 10000, players: 12, rating: 4.1 },
+    { name: "Shimsha Panther", color: "bg-sky-500", budget: 8500, players: 14, rating: 3.9 },
+    { name: "Orsang Leopards", color: "bg-blue-800", budget: 12000, players: 10, rating: 4.3 },
+    { name: "Ken Cheetas", color: "bg-red-500", budget: 9000, players: 13, rating: 4.0 },
+    { name: "Kabini Lynx", color: "bg-purple-500", budget: 11500, players: 11, rating: 4.2 },
+    { name: "Harangi Jaguars", color: "bg-green-500", budget: 10500, players: 12, rating: 3.8 },
+    { name: "Arkavati Lions", color: "bg-yellow-500", budget: 10000, players: 12, rating: 4.1 },
   ];
 
   return (
@@ -53,5 +53,5 @@ export default function Houses() {
         </div>
       </div>
     </div>
-  );
+  );  
 }

@@ -9,13 +9,13 @@ export default function Auction() {
   const [selectedHouse, setSelectedHouse] = useState<string | null>(null);
 
   const houses = [
-    { id: "A", name: "House A", baseColor: "bg-red-600", ringColor: "ring-red-500", text: "text-red-500" },
-    { id: "B", name: "House B", baseColor: "bg-blue-600", ringColor: "ring-blue-500", text: "text-blue-500" },
-    { id: "C", name: "House C", baseColor: "bg-green-600", ringColor: "ring-green-500", text: "text-green-500" },
-    { id: "D", name: "House D", baseColor: "bg-yellow-500", ringColor: "ring-yellow-400", text: "text-yellow-500" },
-    { id: "E", name: "House E", baseColor: "bg-purple-600", ringColor: "ring-purple-500", text: "text-purple-500" },
-    { id: "F", name: "House F", baseColor: "bg-orange-600", ringColor: "ring-orange-500", text: "text-orange-500" },
-    { id: "G", name: "House G", baseColor: "bg-teal-600", ringColor: "ring-teal-500", text: "text-teal-500" },
+    { id: "tons", name: "Tons Tigers", baseColor: "bg-orange-600", ringColor: "ring-orange-500", text: "text-orange-500" },
+    { id: "shimsha", name: "Shimsha Panther", baseColor: "bg-sky-600", ringColor: "ring-sky-500", text: "text-sky-500" },
+    { id: "orsang", name: "Orsang Leopards", baseColor: "bg-blue-800", ringColor: "ring-blue-700", text: "text-blue-500" },
+    { id: "ken", name: "Ken Cheetas", baseColor: "bg-red-600", ringColor: "ring-red-500", text: "text-red-500" },
+    { id: "kabini", name: "Kabini Lynx", baseColor: "bg-purple-600", ringColor: "ring-purple-500", text: "text-purple-500" },
+    { id: "harangi", name: "Harangi Jaguars", baseColor: "bg-green-600", ringColor: "ring-green-500", text: "text-green-500" },
+    { id: "arkavati", name: "Arkavati Lions", baseColor: "bg-yellow-500", ringColor: "ring-yellow-400", text: "text-yellow-500" },
   ];
 
   const handleSold = () => {

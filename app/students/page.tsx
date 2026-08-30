@@ -2,9 +2,9 @@ import { PageHeader } from "@/components/PageHeader";
 
 export default function Students() {
   const students = [
-    { id: 1, name: "Rahul Sharma", roll: "2023CS01", rating: 4.3, sports: ["Cricket", "Badminton"], house: "House A", status: "Sold" },
+    { id: 1, name: "Rahul Sharma", roll: "2023CS01", rating: 4.3, sports: ["Cricket", "Badminton"], house: "Tons Tigers", status: "Sold" },
     { id: 2, name: "Amit Patel", roll: "2023EE14", rating: 3.9, sports: ["Basketball", "Table Tennis"], house: "Unassigned", status: "Available" },
-    { id: 3, name: "Priya Singh", roll: "2024ME05", rating: 4.5, sports: ["Chess", "Badminton"], house: "House C", status: "Sold" },
+    { id: 3, name: "Priya Singh", roll: "2024ME05", rating: 4.5, sports: ["Chess", "Badminton"], house: "Orsang Leopards", status: "Sold" },
   ];
 
   return (
@@ -26,7 +26,7 @@ export default function Students() {
             </select>
             <select className="px-4 py-3 border-2 border-border/50 rounded-none bg-card text-foreground font-bold tracking-wider uppercase text-sm focus:outline-none focus:border-primary transition-colors appearance-none cursor-pointer">
               <option>ALL HOUSES</option>
-              <option>HOUSE A</option>
+              <option>TONS TIGERS</option>
               <option>UNASSIGNED</option>
             </select>
           </div>
