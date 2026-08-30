@@ -37,9 +37,6 @@ export default function Auction() {
     if (error || !data) {
       alert("Player not found in database!");
       setStudent(null);
-    } else if (data.status !== 'Available') {
-      alert(`Player is no longer available! Status: ${data.status}`);
-      setStudent(null);
     } else {
       setStudent(data);
     }
@@ -173,7 +170,21 @@ export default function Auction() {
               <>
                 <div className="p-8 text-center border-b border-border/50 relative overflow-hidden flex-1 flex flex-col justify-center">
                   <div className="absolute inset-0 bg-primary/5"></div>
-                  <p className="text-sm font-bold uppercase tracking-widest mb-2 text-primary relative z-10">Currently on the block</p>
+                  
+                  {student.status === 'Sold' && (
+                    <div className="absolute top-4 right-4 rotate-12 z-20">
+                      <span className="border-4 border-red-500 text-red-500 font-black text-2xl uppercase tracking-widest px-4 py-1 inline-block bg-background/90 clip-angled">SOLD</span>
+                    </div>
+                  )}
+                  {student.status === 'Unsold' && (
+                    <div className="absolute top-4 right-4 rotate-12 z-20">
+                      <span className="border-4 border-muted-foreground text-muted-foreground font-black text-2xl uppercase tracking-widest px-4 py-1 inline-block bg-background/90 clip-angled">UNSOLD</span>
+                    </div>
+                  )}
+
+                  <p className="text-sm font-bold uppercase tracking-widest mb-2 text-primary relative z-10">
+                    {student.status === 'Sold' ? `Sold to: ${houses.find(h => h.id === student.house_id)?.name} for ₹${student.sold_price}` : 'Currently on the block'}
+                  </p>
                   <h2 className="text-5xl md:text-7xl font-display font-black tracking-wider text-white relative z-10 uppercase">{student.name}</h2>
                   <p className="text-xl font-mono text-muted-foreground mt-4 relative z-10">{student.roll_no}</p>
                 </div>
@@ -218,7 +229,7 @@ export default function Auction() {
                 type="number" 
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
-                disabled={!student}
+                disabled={!student || student.status !== 'Available'}
                 placeholder="0"
                 className="w-full text-7xl font-display font-black text-center py-6 bg-background border-2 border-border/50 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all text-white placeholder:text-muted-foreground/30 clip-diagonal outline-none disabled:opacity-50"
               />
@@ -233,7 +244,7 @@ export default function Auction() {
                   <button 
                     key={house.id}
                     onClick={() => setSelectedHouse(house.id)}
-                    disabled={!student}
+                    disabled={!student || student.status !== 'Available'}
                     className={`
                       font-display font-bold text-xl uppercase tracking-wider py-4 transition-all rounded-xl border-2 outline-none
                       ${selectedHouse === house.id 
@@ -251,14 +262,14 @@ export default function Auction() {
             <div className="flex flex-col gap-4 mt-2">
               <button 
                 onClick={handleSold}
-                disabled={!student}
+                disabled={!student || student.status !== 'Available'}
                 className="bg-accent hover:bg-accent/90 text-background text-3xl font-display font-black uppercase tracking-widest py-6 transition-all clip-diagonal glow-accent flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 CONFIRM SOLD
               </button>
               <button 
                 onClick={handleUnsold}
-                disabled={!student}
+                disabled={!student || student.status !== 'Available'}
                 className="bg-background border-2 border-red-500/50 hover:bg-red-500/10 text-red-500 font-bold uppercase tracking-widest py-4 transition-all clip-diagonal disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 MARK UNSOLD
