@@ -2,15 +2,17 @@ export const dynamic = 'force-dynamic';
 
 import { PageHeader } from "@/components/PageHeader";
 import { createClient } from "@/utils/supabase/server";
+import Link from "next/link";
+import { X } from "lucide-react";
 
-export default async function Houses() {
+export default async function Houses({ searchParams }: { searchParams: { roster?: string } }) {
   const supabase = createClient();
   
   // 1. Fetch real budgets from the houses table
   const { data: dbHouses } = await supabase.from('houses').select('*');
   
-  // 2. Fetch all sold students to calculate how many players each house has
-  const { data: students } = await supabase.from('students').select('house_id').eq('status', 'Sold');
+  // 2. Fetch all sold students to calculate counts and display roster
+  const { data: students } = await supabase.from('students').select('*').eq('status', 'Sold').order('sold_price', { ascending: false });
   
   const playerCounts = students?.reduce((acc: any, curr) => {
     if (curr.house_id) {
@@ -38,8 +40,12 @@ export default async function Houses() {
     }
   });
 
+  const rosterHouseId = searchParams.roster;
+  const selectedHouse = rosterHouseId ? houses.find(h => h.id === rosterHouseId) : null;
+  const selectedHouseRoster = selectedHouse ? students?.filter(s => s.house_id === rosterHouseId) || [] : [];
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       <PageHeader title="Houses Dashboard" />
       <div className="p-6 space-y-8 flex-1 bg-background">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -66,15 +72,65 @@ export default async function Houses() {
                 </div>
               </div>
               
-              <div className="bg-primary/5 px-6 py-4 border-t border-border/50 hover:bg-primary/10 transition-colors cursor-pointer text-center group-hover:border-primary/50">
-                <button className="text-primary font-bold uppercase tracking-widest text-sm w-full transition-transform group-hover:scale-105">
+              <div className="bg-primary/5 px-6 py-4 border-t border-border/50 hover:bg-primary/10 transition-colors cursor-pointer text-center group-hover:border-primary/50 block">
+                <Link href={`/houses?roster=${house.id}`} className="block text-primary font-bold uppercase tracking-widest text-sm w-full transition-transform group-hover:scale-105">
                   View Full Roster
-                </button>
+                </Link>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Roster Modal */}
+      {selectedHouse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <Link href="/houses" className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div className="bg-card w-full max-w-3xl border border-border/50 clip-angled relative max-h-[90vh] flex flex-col shadow-2xl z-10">
+            <Link href="/houses" className="absolute top-4 right-4 z-50 text-muted-foreground hover:text-foreground transition-colors p-2 bg-background/50 rounded-full hover:bg-muted">
+              <X className="w-6 h-6" />
+            </Link>
+            
+            <div className={`p-8 border-b border-border/50 relative overflow-hidden`}>
+              <div className={`absolute inset-0 ${selectedHouse.color} opacity-10`}></div>
+              <h2 className="text-4xl font-display font-black uppercase tracking-widest relative z-10">{selectedHouse.name}</h2>
+              <p className="text-sm font-bold tracking-widest uppercase text-muted-foreground mt-2 relative z-10">
+                {selectedHouseRoster.length} Players Registered
+              </p>
+            </div>
+
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-background/50">
+              {selectedHouseRoster.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedHouseRoster.map((player: any) => (
+                    <div key={player.id} className="flex flex-col md:flex-row justify-between md:items-center bg-background border border-border/50 p-4 clip-angled gap-4 hover:border-primary/50 transition-colors">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-lg text-foreground uppercase tracking-wide">{player.name}</span>
+                        <span className="text-xs font-mono text-muted-foreground">{player.roll_no}</span>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                           {player.sports?.map((sport: string) => (
+                             <span key={sport} className="text-[10px] font-bold uppercase bg-muted px-2 py-1 tracking-widest text-muted-foreground">
+                               {sport}
+                             </span>
+                           ))}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end justify-center">
+                         <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Purchased For</span>
+                         <span className="font-display font-black text-2xl text-red-500 bg-red-500/10 px-4 py-2 clip-diagonal">₹{player.sold_price}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground font-bold uppercase tracking-widest border-2 border-dashed border-border/50 clip-angled">
+                  This house hasn't purchased any players yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );  
 }
