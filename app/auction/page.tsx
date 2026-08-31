@@ -61,8 +61,17 @@ export default function Auction() {
     if (error || !data) {
       alert("Player not found in database!");
       setStudent(null);
+      setBidAmount("");
+      setSelectedHouse(null);
     } else {
       setStudent(data);
+      if (data.status === 'Sold') {
+        setBidAmount(data.sold_price?.toString() || "");
+        setSelectedHouse(data.house_id || null);
+      } else {
+        setBidAmount("");
+        setSelectedHouse(null);
+      }
       // Auto-collapse roster when searching manually to save space
       setShowRoster(false);
     }
@@ -72,6 +81,13 @@ export default function Auction() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const loadFromRoster = (player: any) => {
     setStudent(player);
+    if (player.status === 'Sold') {
+      setBidAmount(player.sold_price?.toString() || "");
+      setSelectedHouse(player.house_id || null);
+    } else {
+      setBidAmount("");
+      setSelectedHouse(null);
+    }
     setSearchRoll(player.roll_no);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -123,10 +139,14 @@ export default function Auction() {
     }
 
     // 3. Update student status
-    const { error } = await supabase
-      .from('students')
-      .update({ status: 'Sold', house_id: selectedHouse, sold_price: Number(bidAmount) })
-      .eq('id', student.id);
+    let query = supabase.from('students').update({ status: 'Sold', house_id: selectedHouse, sold_price: Number(bidAmount) });
+    if (student.team_name) {
+      query = query.eq('team_name', student.team_name);
+    } else {
+      query = query.eq('id', student.id);
+    }
+    
+    const { error } = await query;
 
     if (error) {
       alert("Error updating database: " + error.message);
@@ -136,7 +156,14 @@ export default function Auction() {
     alert(`Success! ${student.name} sold to ${houseName} for ₹${bidAmount}.`);
     
     // Update local roster instantly
-    setRoster(roster.map(s => s.id === student.id ? { ...s, status: 'Sold', house_id: selectedHouse, sold_price: Number(bidAmount) } : s));
+    setRoster(roster.map(s => {
+      if (student.team_name && s.team_name === student.team_name) {
+         return { ...s, status: 'Sold', house_id: selectedHouse, sold_price: Number(bidAmount) };
+      } else if (!student.team_name && s.id === student.id) {
+         return { ...s, status: 'Sold', house_id: selectedHouse, sold_price: Number(bidAmount) };
+      }
+      return s;
+    }));
 
     setBidAmount("");
     setSelectedHouse(null);
@@ -151,10 +178,14 @@ export default function Auction() {
     }
     if (confirm("Mark player as UNSOLD?")) {
       const supabase = createClient();
-      const { error } = await supabase
-        .from('students')
-        .update({ status: 'Unsold' })
-        .eq('id', student.id);
+      let query = supabase.from('students').update({ status: 'Unsold' });
+      if (student.team_name) {
+        query = query.eq('team_name', student.team_name);
+      } else {
+        query = query.eq('id', student.id);
+      }
+      
+      const { error } = await query;
 
       if (error) {
         alert("Error updating database: " + error.message);
@@ -164,13 +195,115 @@ export default function Auction() {
       alert(`${student.name} marked as Unsold.`);
       
       // Update local roster instantly
-      setRoster(roster.map(s => s.id === student.id ? { ...s, status: 'Unsold' } : s));
+      setRoster(roster.map(s => {
+        if (student.team_name && s.team_name === student.team_name) {
+           return { ...s, status: 'Unsold' };
+        } else if (!student.team_name && s.id === student.id) {
+           return { ...s, status: 'Unsold' };
+        }
+        return s;
+      }));
 
       setBidAmount("");
       setSelectedHouse(null);
       setStudent(null);
       setSearchRoll("");
     }
+  };
+
+  const handleUpdateSold = async () => {
+    if (!student || student.status !== 'Sold') return;
+    
+    if (!bidAmount || isNaN(Number(bidAmount)) || Number(bidAmount) <= 0) {
+      alert("Please enter a valid winning bid amount.");
+      return;
+    }
+    if (!selectedHouse) {
+      alert("Please select the winning house.");
+      return;
+    }
+
+    const newPrice = Number(bidAmount);
+    const oldPrice = student.sold_price || 0;
+    const oldHouseId = student.house_id;
+    const newHouseId = selectedHouse;
+
+    if (oldHouseId === newHouseId && oldPrice === newPrice) {
+      alert("No changes made.");
+      return;
+    }
+
+    const houseName = houses.find(h => h.id === selectedHouse)?.name;
+    const supabase = createClient();
+    
+    // Check new house budget if it's a different house, or if it's the same house and price increased
+    if (oldHouseId !== newHouseId) {
+      const { data: newHouseData, error: newHouseError } = await supabase.from('houses').select('budget').eq('id', newHouseId).single();
+      if (newHouseError || !newHouseData) {
+         alert("Error fetching new house budget.");
+         return;
+      }
+      if (newHouseData.budget < newPrice) {
+         alert(`Insufficient funds! ${houseName} only has ₹${newHouseData.budget.toLocaleString()} left.`);
+         return;
+      }
+      
+      // refund old house
+      if (oldHouseId) {
+         const { data: oldHouseData } = await supabase.from('houses').select('budget').eq('id', oldHouseId).single();
+         if (oldHouseData) {
+           await supabase.from('houses').update({ budget: oldHouseData.budget + oldPrice }).eq('id', oldHouseId);
+         }
+      }
+      
+      // charge new house
+      await supabase.from('houses').update({ budget: newHouseData.budget - newPrice }).eq('id', newHouseId);
+      
+    } else {
+      // same house
+      const budgetDiff = newPrice - oldPrice;
+      const { data: houseData, error: houseError } = await supabase.from('houses').select('budget').eq('id', newHouseId).single();
+      if (houseError || !houseData) {
+         alert("Error fetching house budget.");
+         return;
+      }
+      if (houseData.budget < budgetDiff) {
+         alert(`Insufficient funds! ${houseName} only has ₹${houseData.budget.toLocaleString()} left.`);
+         return;
+      }
+      await supabase.from('houses').update({ budget: houseData.budget - budgetDiff }).eq('id', newHouseId);
+    }
+
+    // Update student status
+    let query = supabase.from('students').update({ house_id: newHouseId, sold_price: newPrice });
+    if (student.team_name) {
+      query = query.eq('team_name', student.team_name);
+    } else {
+      query = query.eq('id', student.id);
+    }
+    
+    const { error } = await query;
+    if (error) {
+      alert("Error updating database: " + error.message);
+      return;
+    }
+    
+    alert(`Success! ${student.name}'s sold details updated to ${houseName} for ₹${newPrice}.`);
+    
+    // Update local roster instantly
+    setRoster(roster.map(s => {
+      if (student.team_name && s.team_name === student.team_name) {
+         return { ...s, house_id: newHouseId, sold_price: newPrice };
+      } else if (!student.team_name && s.id === student.id) {
+         return { ...s, house_id: newHouseId, sold_price: newPrice };
+      }
+      return s;
+    }));
+
+    setBidAmount("");
+    setSelectedHouse(null);
+    setStudent(null);
+    setSearchRoll("");
   };
 
   return (
@@ -303,6 +436,14 @@ export default function Auction() {
                     </div>
                   )}
 
+                  {student.team_name && (
+                    <div className="absolute top-4 left-4 z-20">
+                      <span className="border-2 border-accent text-accent font-bold text-xs uppercase tracking-widest px-3 py-1 inline-block bg-background/90 clip-angled shadow-lg">
+                        TEAM AUCTION: {student.team_name}
+                      </span>
+                    </div>
+                  )}
+
                   <p className="text-sm font-bold uppercase tracking-widest mb-2 text-primary relative z-10">
                     {student.status === 'Sold' ? `Sold to: ${houses.find(h => h.id === student.house_id)?.name} for ₹${student.sold_price}` : 'Currently on the block'}
                   </p>
@@ -351,7 +492,7 @@ export default function Auction() {
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
                 onWheel={(e) => (e.target as HTMLElement).blur()}
-                disabled={!student || student.status !== 'Available'}
+                disabled={!student || (student.status !== 'Available' && student.status !== 'Sold')}
                 placeholder="0"
                 className="w-full text-7xl font-display font-black text-center py-6 bg-background border-2 border-border/50 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all text-white placeholder:text-muted-foreground/30 clip-diagonal outline-none disabled:opacity-50"
               />
@@ -366,7 +507,7 @@ export default function Auction() {
                   <button 
                     key={house.id}
                     onClick={() => setSelectedHouse(house.id)}
-                    disabled={!student || student.status !== 'Available'}
+                    disabled={!student || (student.status !== 'Available' && student.status !== 'Sold')}
                     className={`
                       font-display font-bold text-xl uppercase tracking-wider py-4 transition-all rounded-xl border-2 outline-none
                       ${selectedHouse === house.id 
@@ -382,13 +523,23 @@ export default function Auction() {
             </div>
 
             <div className="flex flex-col gap-4 mt-2">
-              <button 
-                onClick={handleSold}
-                disabled={!student || student.status !== 'Available'}
-                className="bg-accent hover:bg-accent/90 text-background text-3xl font-display font-black uppercase tracking-widest py-6 transition-all clip-diagonal glow-accent flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                CONFIRM SOLD
-              </button>
+              {student?.status === 'Sold' ? (
+                <button 
+                  onClick={handleUpdateSold}
+                  disabled={!student}
+                  className="bg-orange-500 hover:bg-orange-600 text-background text-3xl font-display font-black uppercase tracking-widest py-6 transition-all clip-diagonal flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  UPDATE SOLD DETAILS
+                </button>
+              ) : (
+                <button 
+                  onClick={handleSold}
+                  disabled={!student || student.status !== 'Available'}
+                  className="bg-accent hover:bg-accent/90 text-background text-3xl font-display font-black uppercase tracking-widest py-6 transition-all clip-diagonal glow-accent flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  CONFIRM SOLD
+                </button>
+              )}
               <button 
                 onClick={handleUnsold}
                 disabled={!student || student.status !== 'Available'}
