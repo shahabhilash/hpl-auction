@@ -191,6 +191,36 @@ export default function Auction() {
     setUpdatingBasePrice(false);
   };
 
+  const getOverlappingRowIds = (targetGroupId: string, allGroups: any[]) => {
+    const affectedGroupIds = new Set<string>([targetGroupId]);
+    let addedNew = true;
+    
+    while (addedNew) {
+      addedNew = false;
+      const currentRegNos = new Set<string>();
+      allGroups.forEach(row => {
+        if (affectedGroupIds.has(row.group_id)) {
+          const rowRegNos = getPlayersFromGroup(row).map((p: any) => p.regNo).filter(Boolean);
+          rowRegNos.forEach((r: string) => currentRegNos.add(r));
+        }
+      });
+      
+      allGroups.forEach(row => {
+        if (!affectedGroupIds.has(row.group_id)) {
+          const rowRegNos = getPlayersFromGroup(row).map((p: any) => p.regNo).filter(Boolean);
+          if (rowRegNos.some((r: string) => currentRegNos.has(r))) {
+            affectedGroupIds.add(row.group_id);
+            addedNew = true;
+          }
+        }
+      });
+    }
+
+    return allGroups
+      .filter(row => affectedGroupIds.has(row.group_id))
+      .map(row => row.id);
+  };
+
   const handleSold = async () => {
     if (!auctionGroup) {
       alert("Please load a group first.");
@@ -225,23 +255,16 @@ export default function Auction() {
       return;
     }
     
-    // 2. Find overlapping groups based on reg_no
-    const playersInGroup = getPlayersFromGroup(auctionGroup);
-    const regNos = playersInGroup.map(p => p.regNo).filter(Boolean);
-    
+    // 2. Find ALL overlapping groups (fully transitive across group_ids)
     const { data: allGroups, error: allGroupsError } = await supabase.from('auction_groups').select('*');
     if (allGroupsError) {
       alert("Error fetching groups for overlap check.");
       return;
     }
     
-    const overlappingGroups = allGroups.filter(g => {
-      const gRegNos = getPlayersFromGroup(g).map(p => p.regNo).filter(Boolean);
-      return regNos.some(r => gRegNos.includes(r));
-    });
-    
-    const overlappingGroupIds = overlappingGroups.map(g => g.id);
-    const isMultiple = overlappingGroupIds.length > 1;
+    const overlappingGroupIds = getOverlappingRowIds(auctionGroup.group_id, allGroups || []);
+    // if we are updating more rows than just this group's rows, then there is an overlap
+    const isMultiple = overlappingGroupIds.length > (auctionGroup.rows ? auctionGroup.rows.length : 1);
 
     // 3. Deduct budget (ONCE for the entire transaction)
     const newBudget = houseData.budget - Number(bidAmount);
@@ -345,17 +368,9 @@ export default function Auction() {
     }
 
     // Update ALL overlapping groups exactly like handleSold
-    const playersInGroup = getPlayersFromGroup(auctionGroup);
-    const regNos = playersInGroup.map(p => p.regNo).filter(Boolean);
-    
     const { data: allGroups } = await supabase.from('auction_groups').select('*');
-    const overlappingGroups = allGroups?.filter(g => {
-      const gRegNos = getPlayersFromGroup(g).map(p => p.regNo).filter(Boolean);
-      return regNos.some(r => gRegNos.includes(r));
-    }) || [auctionGroup];
-    
-    const overlappingGroupIds = overlappingGroups.map(g => g.id);
-    const isMultiple = overlappingGroupIds.length > 1;
+    const overlappingGroupIds = getOverlappingRowIds(auctionGroup.group_id, allGroups || []);
+    const isMultiple = overlappingGroupIds.length > (auctionGroup.rows ? auctionGroup.rows.length : 1);
 
     const { error } = await supabase
       .from('auction_groups')
@@ -403,17 +418,9 @@ export default function Auction() {
          }
       }
       
-      // 2. Find overlapping groups to update them all
-      const playersInGroup = getPlayersFromGroup(auctionGroup);
-      const regNos = playersInGroup.map(p => p.regNo).filter(Boolean);
-      
+      // 2. Find ALL overlapping groups to update them all
       const { data: allGroups } = await supabase.from('auction_groups').select('*');
-      const overlappingGroups = allGroups?.filter(g => {
-        const gRegNos = getPlayersFromGroup(g).map(p => p.regNo).filter(Boolean);
-        return regNos.some(r => gRegNos.includes(r));
-      }) || [auctionGroup];
-      
-      const overlappingGroupIds = overlappingGroups.map(g => g.id);
+      const overlappingGroupIds = getOverlappingRowIds(auctionGroup.group_id, allGroups || []);
 
       // 3. Mark all as unsold and clear sold data
       const { error } = await supabase
