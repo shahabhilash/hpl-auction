@@ -259,6 +259,101 @@ export default function Auction() {
     setSearchGroupId("");
   };
 
+  const handleUpdateSold = async () => {
+    if (!auctionGroup || auctionGroup.sold_status !== 'Sold') return;
+    
+    if (!bidAmount || isNaN(Number(bidAmount)) || Number(bidAmount) <= 0) {
+      alert("Please enter a valid winning bid amount.");
+      return;
+    }
+    if (!selectedHouse) {
+      alert("Please select the winning house.");
+      return;
+    }
+
+    const newPrice = Number(bidAmount);
+    const oldPrice = auctionGroup.sold_amount || 0;
+    const oldHouseId = auctionGroup.sold_to_house;
+    const newHouseId = selectedHouse;
+
+    if (oldHouseId === newHouseId && oldPrice === newPrice) {
+      alert("No changes made.");
+      return;
+    }
+
+    const houseName = houses.find(h => h.id === selectedHouse)?.name;
+    const supabase = createClient();
+    
+    // Check new house budget if it's a different house, or if it's the same house and price increased
+    if (oldHouseId !== newHouseId) {
+      const { data: newHouseData, error: newHouseError } = await supabase.from('houses').select('budget').eq('id', newHouseId).single();
+      if (newHouseError || !newHouseData) {
+         alert("Error fetching new house budget.");
+         return;
+      }
+      if (newHouseData.budget < newPrice) {
+         alert(`Insufficient funds! ${houseName} only has ₹${newHouseData.budget.toLocaleString()} left.`);
+         return;
+      }
+      
+      // refund old house
+      if (oldHouseId) {
+         const { data: oldHouseData } = await supabase.from('houses').select('budget').eq('id', oldHouseId).single();
+         if (oldHouseData) {
+           await supabase.from('houses').update({ budget: oldHouseData.budget + oldPrice }).eq('id', oldHouseId);
+         }
+      }
+      
+      // charge new house
+      await supabase.from('houses').update({ budget: newHouseData.budget - newPrice }).eq('id', newHouseId);
+      
+    } else {
+      // same house
+      const budgetDiff = newPrice - oldPrice;
+      const { data: houseData, error: houseError } = await supabase.from('houses').select('budget').eq('id', newHouseId).single();
+      if (houseError || !houseData) {
+         alert("Error fetching house budget.");
+         return;
+      }
+      if (houseData.budget < budgetDiff) {
+         alert(`Insufficient funds! ${houseName} only has ₹${houseData.budget.toLocaleString()} left.`);
+         return;
+      }
+      await supabase.from('houses').update({ budget: houseData.budget - budgetDiff }).eq('id', newHouseId);
+    }
+
+    // Update ALL overlapping groups exactly like handleSold
+    const playersInGroup = getPlayersFromGroup(auctionGroup);
+    const regNos = playersInGroup.map(p => p.regNo).filter(Boolean);
+    
+    const { data: allGroups } = await supabase.from('auction_groups').select('*');
+    const overlappingGroups = allGroups?.filter(g => {
+      const gRegNos = getPlayersFromGroup(g).map(p => p.regNo).filter(Boolean);
+      return regNos.some(r => gRegNos.includes(r));
+    }) || [auctionGroup];
+    
+    const overlappingGroupIds = overlappingGroups.map(g => g.id);
+    const isMultiple = overlappingGroupIds.length > 1;
+
+    const { error } = await supabase
+      .from('auction_groups')
+      .update({ sold_to_house: newHouseId, sold_amount: newPrice })
+      .in('id', overlappingGroupIds);
+      
+    if (error) {
+      alert("Error updating database: " + error.message);
+      return;
+    }
+    
+    alert(`Success! Group ${auctionGroup.group_id} ${isMultiple ? '(and all overlapping groups) ' : ''}sold details updated to ${houseName} for ₹${newPrice}.`);
+    
+    fetchRoster();
+    setAuctionGroup(null);
+    setBidAmount("");
+    setSelectedHouse(null);
+    setSearchGroupId("");
+  };
+
   const handleUnsold = async () => {
     if (!auctionGroup) return;
     
@@ -515,7 +610,7 @@ export default function Auction() {
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
                 onWheel={(e) => (e.target as HTMLElement).blur()}
-                disabled={!auctionGroup || auctionGroup.sold_status === 'Sold'}
+                disabled={!auctionGroup}
                 placeholder="0"
                 className="w-full text-7xl font-display font-black text-center py-6 bg-background border-2 border-border/50 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all text-white placeholder:text-muted-foreground/30 clip-diagonal outline-none disabled:opacity-50"
               />
@@ -530,7 +625,7 @@ export default function Auction() {
                   <button 
                     key={house.id}
                     onClick={() => setSelectedHouse(house.id)}
-                    disabled={!auctionGroup || auctionGroup.sold_status === 'Sold'}
+                    disabled={!auctionGroup}
                     className={`
                       font-display font-bold text-xl uppercase tracking-wider py-4 transition-all rounded-xl border-2 outline-none
                       ${selectedHouse === house.id 
@@ -546,13 +641,23 @@ export default function Auction() {
             </div>
 
             <div className="flex flex-col gap-4 mt-2">
-              <button 
-                onClick={handleSold}
-                disabled={!auctionGroup || auctionGroup.sold_status === 'Sold'}
-                className="bg-accent hover:bg-accent/90 text-background text-3xl font-display font-black uppercase tracking-widest py-6 transition-all clip-diagonal glow-accent flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                CONFIRM SOLD
-              </button>
+              {auctionGroup?.sold_status === 'Sold' ? (
+                <button 
+                  onClick={handleUpdateSold}
+                  disabled={!auctionGroup}
+                  className="bg-orange-500 hover:bg-orange-600 text-background text-3xl font-display font-black uppercase tracking-widest py-6 transition-all clip-diagonal flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  UPDATE SOLD DETAILS
+                </button>
+              ) : (
+                <button 
+                  onClick={handleSold}
+                  disabled={!auctionGroup || auctionGroup.sold_status === 'Sold'}
+                  className="bg-accent hover:bg-accent/90 text-background text-3xl font-display font-black uppercase tracking-widest py-6 transition-all clip-diagonal glow-accent flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  CONFIRM SOLD
+                </button>
+              )}
               <button 
                 onClick={handleUnsold}
                 disabled={!auctionGroup || auctionGroup.sold_status === 'Sold'}
