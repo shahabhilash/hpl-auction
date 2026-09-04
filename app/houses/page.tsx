@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import { X } from "lucide-react";
 
-export default async function Houses({ searchParams }: { searchParams: { roster?: string } }) {
+export default async function Houses({ searchParams }: { searchParams: { roster?: string, sport?: string } }) {
   const supabase = createClient();
   
   // 1. Fetch real budgets from the houses table
@@ -16,6 +16,10 @@ export default async function Houses({ searchParams }: { searchParams: { roster?
     .select('*')
     .eq('sold_status', 'Sold')
     .order('sold_amount', { ascending: false });
+
+  // Fetch all groups just to extract unique sports for the modal
+  const { data: allGroupsForSports } = await supabase.from('auction_groups').select('sport');
+  const allSports = Array.from(new Set(allGroupsForSports?.map(g => g.sport).filter(Boolean))).sort();
   
   // Helper to extract players from a group
   const extractPlayers = (group: any) => {
@@ -71,6 +75,17 @@ export default async function Houses({ searchParams }: { searchParams: { roster?
   const selectedHouse = rosterHouseId ? houses.find(h => h.id === rosterHouseId) : null;
   const selectedHouseRoster = selectedHouse ? allSoldPlayers.filter(p => p.house_id === rosterHouseId) : [];
 
+  const playersBySport: Record<string, number> = {};
+  allSports.forEach(sport => {
+    playersBySport[sport as string] = 0;
+  });
+
+  selectedHouseRoster.forEach((player: any) => {
+    if (player.sport) {
+      playersBySport[player.sport] += 1;
+    }
+  });
+
   return (
     <div className="flex flex-col h-full relative">
       <PageHeader title="Houses Dashboard" />
@@ -118,26 +133,43 @@ export default async function Houses({ searchParams }: { searchParams: { roster?
               <X className="w-6 h-6" />
             </Link>
             
-            <div className={`p-8 border-b border-border/50 relative overflow-hidden`}>
+            <div className={`p-8 border-b border-border/50 relative overflow-hidden flex justify-between items-center`}>
               <div className={`absolute inset-0 ${selectedHouse.color} opacity-10`}></div>
-              <h2 className="text-4xl font-display font-black uppercase tracking-widest relative z-10">{selectedHouse.name}</h2>
-              <p className="text-sm font-bold tracking-widest uppercase text-muted-foreground mt-2 relative z-10">
-                {selectedHouseRoster.length} Players Registered
-              </p>
+              <div>
+                <h2 className="text-4xl font-display font-black uppercase tracking-widest relative z-10">{selectedHouse.name}</h2>
+                <p className="text-sm font-bold tracking-widest uppercase text-muted-foreground mt-2 relative z-10">
+                  {selectedHouseRoster.length} Players Registered {searchParams.sport ? `• ${searchParams.sport}` : ''}
+                </p>
+              </div>
+              {searchParams.sport && (
+                 <Link href={`/houses?roster=${selectedHouse.id}`} className="bg-background border border-border/50 px-4 py-2 font-bold uppercase tracking-widest text-xs hover:bg-muted transition-colors clip-angled relative z-10">
+                   Back to Sports
+                 </Link>
+              )}
             </div>
 
             <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-background/50">
-              {selectedHouseRoster.length > 0 ? (
+              {!searchParams.sport ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(playersBySport).map(([sport, count]) => (
+                    <Link 
+                      key={sport}
+                      href={`/houses?roster=${selectedHouse.id}&sport=${encodeURIComponent(sport)}`}
+                      className="bg-background border border-border/50 p-6 flex flex-col items-center justify-center gap-2 hover:border-primary/50 group transition-all clip-angled hover:bg-primary/5"
+                    >
+                      <span className="text-xl font-display font-black uppercase tracking-widest group-hover:text-primary transition-colors text-center">{sport}</span>
+                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{count as number} {count === 1 ? 'Player' : 'Players'}</span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
                 <div className="space-y-3">
-                  {selectedHouseRoster.map((player: any) => (
+                  {selectedHouseRoster.filter(p => p.sport === searchParams.sport).map((player: any) => (
                     <div key={player.id} className="flex flex-col md:flex-row justify-between md:items-center bg-background border border-border/50 p-4 clip-angled gap-4 hover:border-primary/50 transition-colors">
                       <div className="flex flex-col">
                         <span className="font-bold text-lg text-foreground uppercase tracking-wide">{player.name}</span>
                         <span className="text-xs font-mono text-muted-foreground">{player.roll_no}</span>
                         <div className="flex flex-wrap gap-2 mt-2">
-                           <span className="text-[10px] font-bold uppercase bg-muted px-2 py-1 tracking-widest text-muted-foreground">
-                             {player.sport}
-                           </span>
                            <span className="text-[10px] font-bold uppercase border border-border/50 px-2 py-1 tracking-widest text-muted-foreground">
                              Group {player.group_id}
                            </span>
@@ -149,10 +181,11 @@ export default async function Houses({ searchParams }: { searchParams: { roster?
                       </div>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground font-bold uppercase tracking-widest border-2 border-dashed border-border/50 clip-angled">
-                  This house hasn't purchased any players yet.
+                  {selectedHouseRoster.filter(p => p.sport === searchParams.sport).length === 0 && (
+                     <div className="text-center py-12 text-muted-foreground font-bold uppercase tracking-widest border-2 border-dashed border-border/50 clip-angled">
+                        No players purchased for this sport yet.
+                     </div>
+                  )}
                 </div>
               )}
             </div>

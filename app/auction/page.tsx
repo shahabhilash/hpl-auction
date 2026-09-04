@@ -37,31 +37,48 @@ export default function Auction() {
   const fetchRoster = async () => {
     const supabase = createClient();
     const { data } = await supabase.from('auction_groups').select('*').order('group_id');
-    if (data) setRoster(data);
+    if (data) {
+      const grouped = data.reduce((acc: any, row: any) => {
+        if (!acc[row.group_id]) {
+          acc[row.group_id] = { ...row, rows: [row], all_sports: [row.sport].filter(Boolean) };
+        } else {
+          acc[row.group_id].rows.push(row);
+          if (row.sport && !acc[row.group_id].all_sports.includes(row.sport)) {
+             acc[row.group_id].all_sports.push(row.sport);
+          }
+        }
+        return acc;
+      }, {});
+      setRoster(Object.values(grouped));
+    }
   };
 
   useEffect(() => {
     fetchRoster();
   }, []);
 
-  const uniqueSports = Array.from(new Set(roster.map(g => g.sport).filter(Boolean))).sort();
+  const uniqueSports = Array.from(new Set(roster.flatMap(g => g.all_sports))).sort();
   
   const filteredRoster = roster.filter(g => {
     const statusMatch = (g.sold_status || 'Available') === rosterFilter;
-    const sportMatch = sportFilter === 'All' || g.sport === sportFilter;
+    const sportMatch = sportFilter === 'All' || (g.all_sports && g.all_sports.includes(sportFilter));
     return statusMatch && sportMatch;
   });
 
   const getPlayersFromGroup = (group: any) => {
-    const players = [];
-    for (let i = 1; i <= 7; i++) {
-      if (group[`player_${i}`]) {
-        players.push({
-          name: group[`player_${i}`],
-          regNo: group[`reg_no_${i}`]
-        });
+    const players: any[] = [];
+    const rows = group.rows || [group];
+    rows.forEach((row: any) => {
+      for (let i = 1; i <= 7; i++) {
+        if (row[`player_${i}`]) {
+          players.push({
+            name: row[`player_${i}`],
+            regNo: row[`reg_no_${i}`],
+            sport: row.sport
+          });
+        }
       }
-    }
+    });
     return players;
   };
 
@@ -73,21 +90,21 @@ export default function Auction() {
     const { data, error } = await supabase
       .from('auction_groups')
       .select('*')
-      .ilike('group_id', searchGroupId.trim())
-      .single();
+      .ilike('group_id', searchGroupId.trim());
       
-    if (error || !data) {
+    if (error || !data || data.length === 0) {
       alert("Group not found in database!");
       setAuctionGroup(null);
       setBidAmount("");
       setSelectedHouse(null);
       setBasePriceInput("");
     } else {
-      setAuctionGroup(data);
-      setBasePriceInput(data.base_price?.toString() || "");
-      if (data.sold_status === 'Sold') {
-        setBidAmount(data.sold_amount?.toString() || "");
-        setSelectedHouse(data.sold_to_house || null);
+      const syntheticGroup = { ...data[0], rows: data, all_sports: data.map(r => r.sport).filter(Boolean) };
+      setAuctionGroup(syntheticGroup);
+      setBasePriceInput(data[0].base_price?.toString() || "");
+      if (data[0].sold_status === 'Sold') {
+        setBidAmount(data[0].sold_amount?.toString() || "");
+        setSelectedHouse(data[0].sold_to_house || null);
       } else {
         setBidAmount("");
         setSelectedHouse(null);
@@ -101,33 +118,36 @@ export default function Auction() {
     if (!searchRegNo) return;
     setLoading(true);
     const supabase = createClient();
-    
     const query = searchRegNo.trim();
     
-    const { data, error } = await supabase
+    const { data: matchData, error: matchError } = await supabase
       .from('auction_groups')
-      .select('*')
+      .select('group_id')
       .or(`reg_no_1.ilike.%${query}%,reg_no_2.ilike.%${query}%,reg_no_3.ilike.%${query}%,reg_no_4.ilike.%${query}%,reg_no_5.ilike.%${query}%,reg_no_6.ilike.%${query}%,reg_no_7.ilike.%${query}%`)
       .limit(1)
       .single();
       
-    if (error || !data) {
+    if (matchError || !matchData) {
       alert("Player not found in any group!");
       setAuctionGroup(null);
       setBidAmount("");
       setSelectedHouse(null);
       setBasePriceInput("");
     } else {
-      setAuctionGroup(data);
-      setBasePriceInput(data.base_price?.toString() || "");
-      if (data.sold_status === 'Sold') {
-        setBidAmount(data.sold_amount?.toString() || "");
-        setSelectedHouse(data.sold_to_house || null);
-      } else {
-        setBidAmount("");
-        setSelectedHouse(null);
+      const { data } = await supabase.from('auction_groups').select('*').eq('group_id', matchData.group_id);
+      if (data && data.length > 0) {
+        const syntheticGroup = { ...data[0], rows: data, all_sports: data.map(r => r.sport).filter(Boolean) };
+        setAuctionGroup(syntheticGroup);
+        setBasePriceInput(data[0].base_price?.toString() || "");
+        if (data[0].sold_status === 'Sold') {
+          setBidAmount(data[0].sold_amount?.toString() || "");
+          setSelectedHouse(data[0].sold_to_house || null);
+        } else {
+          setBidAmount("");
+          setSelectedHouse(null);
+        }
+        setShowRoster(false);
       }
-      setShowRoster(false);
     }
     setLoading(false);
   };
@@ -151,19 +171,21 @@ export default function Auction() {
     if (!auctionGroup) return;
     setUpdatingBasePrice(true);
     const supabase = createClient();
-    
     const newBasePrice = Number(basePriceInput);
+    
+    const rows = auctionGroup.rows || [auctionGroup];
+    const ids = rows.map((r: any) => r.id);
+    
     const { error } = await supabase
       .from('auction_groups')
       .update({ base_price: newBasePrice })
-      .eq('id', auctionGroup.id);
+      .in('id', ids);
       
     if (error) {
       alert("Error updating base price: " + error.message);
     } else {
       setAuctionGroup({ ...auctionGroup, base_price: newBasePrice });
-      // Update roster locally
-      setRoster(roster.map(g => g.id === auctionGroup.id ? { ...g, base_price: newBasePrice } : g));
+      setRoster(roster.map(g => g.group_id === auctionGroup.group_id ? { ...g, base_price: newBasePrice } : g));
       alert("Base price updated successfully!");
     }
     setUpdatingBasePrice(false);
@@ -580,9 +602,13 @@ export default function Auction() {
                   </p>
                   <h2 className="text-5xl md:text-7xl font-display font-black tracking-wider text-white relative z-10 uppercase text-center">{auctionGroup.group_id}</h2>
                   
-                  <div className="flex gap-4 mt-4 relative z-10">
+                  <div className="flex gap-4 mt-4 relative z-10 flex-wrap justify-center">
                      <span className="px-3 py-1 bg-background border border-border/50 text-xs font-bold uppercase tracking-widest">{auctionGroup.category}</span>
-                     <span className="px-3 py-1 bg-background border border-border/50 text-xs font-bold uppercase tracking-widest">{auctionGroup.sport}</span>
+                     {auctionGroup.all_sports ? auctionGroup.all_sports.map((sport: string) => (
+                       <span key={sport} className="px-3 py-1 bg-background border border-border/50 text-xs font-bold uppercase tracking-widest">{sport}</span>
+                     )) : (
+                       <span className="px-3 py-1 bg-background border border-border/50 text-xs font-bold uppercase tracking-widest">{auctionGroup.sport}</span>
+                     )}
                   </div>
 
                   {/* Base Amount Control */}
@@ -614,7 +640,10 @@ export default function Auction() {
                     {getPlayersFromGroup(auctionGroup).map((player, idx) => (
                       <div key={idx} className="bg-background p-4 border border-border/50 flex flex-col clip-angled hover:border-primary/50 transition-colors">
                         <span className="font-bold uppercase tracking-wider text-foreground">{player.name}</span>
-                        <span className="text-xs font-mono text-muted-foreground mt-1">{player.regNo}</span>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-xs font-mono text-muted-foreground">{player.regNo}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest bg-muted px-2 py-1 text-muted-foreground">{player.sport}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
