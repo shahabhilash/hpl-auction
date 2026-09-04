@@ -357,20 +357,59 @@ export default function Auction() {
   const handleUnsold = async () => {
     if (!auctionGroup) return;
     
-    if (confirm("Mark group as UNSOLD?")) {
+    const isCurrentlySold = auctionGroup.sold_status === 'Sold';
+    const confirmMsg = isCurrentlySold 
+      ? "Are you sure you want to UNDO this sale? The budget will be refunded and the group will be marked as UNSOLD." 
+      : "Mark group as UNSOLD?";
+      
+    if (confirm(confirmMsg)) {
       const supabase = createClient();
       
+      // 1. Refund the house if it was previously sold
+      if (isCurrentlySold && auctionGroup.sold_to_house && auctionGroup.sold_amount) {
+         const { data: houseData, error: houseError } = await supabase
+           .from('houses')
+           .select('budget')
+           .eq('id', auctionGroup.sold_to_house)
+           .single();
+           
+         if (!houseError && houseData) {
+            await supabase
+              .from('houses')
+              .update({ budget: houseData.budget + auctionGroup.sold_amount })
+              .eq('id', auctionGroup.sold_to_house);
+         }
+      }
+      
+      // 2. Find overlapping groups to update them all
+      const playersInGroup = getPlayersFromGroup(auctionGroup);
+      const regNos = playersInGroup.map(p => p.regNo).filter(Boolean);
+      
+      const { data: allGroups } = await supabase.from('auction_groups').select('*');
+      const overlappingGroups = allGroups?.filter(g => {
+        const gRegNos = getPlayersFromGroup(g).map(p => p.regNo).filter(Boolean);
+        return regNos.some(r => gRegNos.includes(r));
+      }) || [auctionGroup];
+      
+      const overlappingGroupIds = overlappingGroups.map(g => g.id);
+
+      // 3. Mark all as unsold and clear sold data
       const { error } = await supabase
         .from('auction_groups')
-        .update({ sold_status: 'Unsold' })
-        .eq('id', auctionGroup.id);
+        .update({ 
+          sold_status: 'Unsold', 
+          sold_to_house: null, 
+          sold_amount: null, 
+          sold_at: null 
+        })
+        .in('id', overlappingGroupIds);
 
       if (error) {
         alert("Error updating database: " + error.message);
         return;
       }
       
-      alert(`Group ${auctionGroup.group_id} marked as Unsold.`);
+      alert(isCurrentlySold ? `Sale undone! Budget refunded and group marked as Unsold.` : `Group marked as Unsold.`);
       
       fetchRoster();
       setAuctionGroup(null);
@@ -660,10 +699,10 @@ export default function Auction() {
               )}
               <button 
                 onClick={handleUnsold}
-                disabled={!auctionGroup || auctionGroup.sold_status === 'Sold'}
+                disabled={!auctionGroup}
                 className="bg-background border-2 border-red-500/50 hover:bg-red-500/10 text-red-500 font-bold uppercase tracking-widest py-4 transition-all clip-diagonal disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                MARK UNSOLD
+                {auctionGroup?.sold_status === 'Sold' ? 'UNDO SALE' : 'MARK UNSOLD'}
               </button>
             </div>
             
