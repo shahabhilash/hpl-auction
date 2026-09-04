@@ -11,10 +11,37 @@ export default async function Houses({ searchParams }: { searchParams: { roster?
   // 1. Fetch real budgets from the houses table
   const { data: dbHouses } = await supabase.from('houses').select('*');
   
-  // 2. Fetch all sold students to calculate counts and display roster
-  const { data: students } = await supabase.from('students').select('*').eq('status', 'Sold').order('sold_price', { ascending: false });
+  // 2. Fetch all sold auction groups to calculate counts and display roster
+  const { data: soldGroups } = await supabase.from('auction_groups')
+    .select('*')
+    .eq('sold_status', 'Sold')
+    .order('sold_amount', { ascending: false });
   
-  const playerCounts = students?.reduce((acc: any, curr) => {
+  // Helper to extract players from a group
+  const extractPlayers = (group: any) => {
+    const players = [];
+    for (let i = 1; i <= 7; i++) {
+      if (group[`player_${i}`]) {
+        players.push({
+          id: `${group.id}-${i}`, // composite id
+          name: group[`player_${i}`],
+          roll_no: group[`reg_no_${i}`],
+          sport: group.sport,
+          category: group.category,
+          sold_price: group.sold_amount,
+          group_id: group.group_id,
+          house_id: group.sold_to_house
+        });
+      }
+    }
+    return players;
+  };
+
+  // 3. Extract all sold players
+  const allSoldPlayers = soldGroups?.flatMap(extractPlayers) || [];
+
+  // Calculate player counts per house
+  const playerCounts = allSoldPlayers.reduce((acc: any, curr) => {
     if (curr.house_id) {
       acc[curr.house_id] = (acc[curr.house_id] || 0) + 1;
     }
@@ -22,13 +49,13 @@ export default async function Houses({ searchParams }: { searchParams: { roster?
   }, {});
 
   const staticHouses = [
-    { id: "tons", name: "Tons Tigers", color: "bg-orange-500" },
-    { id: "shimsha", name: "Shimsha Panther", color: "bg-sky-500" },
-    { id: "orsang", name: "Orsang Leopards", color: "bg-blue-800" },
-    { id: "ken", name: "Ken Cheetas", color: "bg-red-500" },
-    { id: "kabini", name: "Kabini Lynx", color: "bg-purple-500" },
-    { id: "harangi", name: "Harangi Jaguars", color: "bg-green-500" },
-    { id: "arkavati", name: "Arkavati Lions", color: "bg-yellow-500" },
+    { id: "tons-tigers", name: "Tons Tigers", color: "bg-orange-500" },
+    { id: "shimsha-panther", name: "Shimsha Panther", color: "bg-sky-500" },
+    { id: "orsang-leopards", name: "Orsang Leopards", color: "bg-blue-800" },
+    { id: "ken-cheetas", name: "Ken Cheetas", color: "bg-red-500" },
+    { id: "kabini-lynx", name: "Kabini Lynx", color: "bg-purple-500" },
+    { id: "harangi-jaguars", name: "Harangi Jaguars", color: "bg-green-500" },
+    { id: "arkavati-lions", name: "Arkavati Lions", color: "bg-yellow-500" },
   ];
 
   const houses = staticHouses.map(sh => {
@@ -42,7 +69,7 @@ export default async function Houses({ searchParams }: { searchParams: { roster?
 
   const rosterHouseId = searchParams.roster;
   const selectedHouse = rosterHouseId ? houses.find(h => h.id === rosterHouseId) : null;
-  const selectedHouseRoster = selectedHouse ? students?.filter(s => s.house_id === rosterHouseId) || [] : [];
+  const selectedHouseRoster = selectedHouse ? allSoldPlayers.filter(p => p.house_id === rosterHouseId) : [];
 
   return (
     <div className="flex flex-col h-full relative">
@@ -108,15 +135,16 @@ export default async function Houses({ searchParams }: { searchParams: { roster?
                         <span className="font-bold text-lg text-foreground uppercase tracking-wide">{player.name}</span>
                         <span className="text-xs font-mono text-muted-foreground">{player.roll_no}</span>
                         <div className="flex flex-wrap gap-2 mt-2">
-                           {player.sports?.map((sport: string) => (
-                             <span key={sport} className="text-[10px] font-bold uppercase bg-muted px-2 py-1 tracking-widest text-muted-foreground">
-                               {sport}
-                             </span>
-                           ))}
+                           <span className="text-[10px] font-bold uppercase bg-muted px-2 py-1 tracking-widest text-muted-foreground">
+                             {player.sport}
+                           </span>
+                           <span className="text-[10px] font-bold uppercase border border-border/50 px-2 py-1 tracking-widest text-muted-foreground">
+                             Group {player.group_id}
+                           </span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end justify-center">
-                         <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Purchased For</span>
+                         <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Group Purchased For</span>
                          <span className="font-display font-black text-2xl text-red-500 bg-red-500/10 px-4 py-2 clip-diagonal">₹{player.sold_price}</span>
                       </div>
                     </div>

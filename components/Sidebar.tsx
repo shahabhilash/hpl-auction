@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Menu, X, LayoutDashboard, Users, Home, Activity, Gavel, Calendar, Trophy, Settings, Sun, Moon } from "lucide-react";
+import { Menu, X, LayoutDashboard, Users, Home, Activity, Gavel, Calendar, Trophy, Settings, Sun, Moon, Star } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 
 export function Sidebar() {
@@ -22,6 +22,7 @@ export function Sidebar() {
     { href: "/sports", label: "Sports", icon: <Activity size={20} /> },
     { href: "/auction", label: "Auction", icon: <Gavel size={20} /> },
     { href: "/settings", label: "Settings", icon: <Settings size={20} /> },
+    { href: "/special-auction", label: "Special Auction", icon: <Star size={20} /> },
   ];
 
   return (

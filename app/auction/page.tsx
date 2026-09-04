@@ -2,16 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { Search, Users, ChevronDown, ChevronUp } from "lucide-react"; 
+import { Search, Users, ChevronDown, ChevronUp, Save } from "lucide-react"; 
 import { createClient } from "@/utils/supabase/client";
 
 export default function Auction() {
   const [bidAmount, setBidAmount] = useState<string>("");
   const [selectedHouse, setSelectedHouse] = useState<string | null>(null);
-  const [searchRoll, setSearchRoll] = useState("");
+  const [searchGroupId, setSearchGroupId] = useState("");
+  const [searchRegNo, setSearchRegNo] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [student, setStudent] = useState<any>(null);
+  const [auctionGroup, setAuctionGroup] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  
+  const [basePriceInput, setBasePriceInput] = useState<string>("");
+  const [updatingBasePrice, setUpdatingBasePrice] = useState(false);
 
   // Roster States
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,80 +25,153 @@ export default function Auction() {
   const [showRoster, setShowRoster] = useState(true);
 
   const houses = [
-    { id: "tons", name: "Tons Tigers", baseColor: "bg-orange-600", ringColor: "ring-orange-500", text: "text-orange-500", fadedClass: "bg-orange-500/10 border-orange-500/30 text-orange-500 hover:bg-orange-500/20 hover:border-orange-500/50" },
-    { id: "shimsha", name: "Shimsha Panther", baseColor: "bg-sky-600", ringColor: "ring-sky-500", text: "text-sky-400", fadedClass: "bg-sky-400/10 border-sky-400/30 text-sky-400 hover:bg-sky-400/20 hover:border-sky-400/50" },
-    { id: "orsang", name: "Orsang Leopards", baseColor: "bg-blue-800", ringColor: "ring-blue-700", text: "text-blue-500", fadedClass: "bg-blue-900/30 border-blue-800/60 text-blue-500 hover:bg-blue-900/50 hover:border-blue-700/60" },
-    { id: "ken", name: "Ken Cheetas", baseColor: "bg-red-600", ringColor: "ring-red-500", text: "text-red-500", fadedClass: "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50" },
-    { id: "kabini", name: "Kabini Lynx", baseColor: "bg-purple-600", ringColor: "ring-purple-500", text: "text-purple-500", fadedClass: "bg-purple-500/10 border-purple-500/30 text-purple-500 hover:bg-purple-500/20 hover:border-purple-500/50" },
-    { id: "harangi", name: "Harangi Jaguars", baseColor: "bg-green-600", ringColor: "ring-green-500", text: "text-green-500", fadedClass: "bg-green-500/10 border-green-500/30 text-green-500 hover:bg-green-500/20 hover:border-green-500/50" },
-    { id: "arkavati", name: "Arkavati Lions", baseColor: "bg-yellow-500", ringColor: "ring-yellow-400", text: "text-yellow-500", fadedClass: "bg-yellow-500/10 border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/20 hover:border-yellow-500/50" },
+    { id: "tons-tigers", name: "Tons Tigers", baseColor: "bg-orange-600", ringColor: "ring-orange-500", text: "text-orange-500", fadedClass: "bg-orange-500/10 border-orange-500/30 text-orange-500 hover:bg-orange-500/20 hover:border-orange-500/50" },
+    { id: "shimsha-panther", name: "Shimsha Panther", baseColor: "bg-sky-600", ringColor: "ring-sky-500", text: "text-sky-400", fadedClass: "bg-sky-400/10 border-sky-400/30 text-sky-400 hover:bg-sky-400/20 hover:border-sky-400/50" },
+    { id: "orsang-leopards", name: "Orsang Leopards", baseColor: "bg-blue-800", ringColor: "ring-blue-700", text: "text-blue-500", fadedClass: "bg-blue-900/30 border-blue-800/60 text-blue-500 hover:bg-blue-900/50 hover:border-blue-700/60" },
+    { id: "ken-cheetas", name: "Ken Cheetas", baseColor: "bg-red-600", ringColor: "ring-red-500", text: "text-red-500", fadedClass: "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20 hover:border-red-500/50" },
+    { id: "kabini-lynx", name: "Kabini Lynx", baseColor: "bg-purple-600", ringColor: "ring-purple-500", text: "text-purple-500", fadedClass: "bg-purple-500/10 border-purple-500/30 text-purple-500 hover:bg-purple-500/20 hover:border-purple-500/50" },
+    { id: "harangi-jaguars", name: "Harangi Jaguars", baseColor: "bg-green-600", ringColor: "ring-green-500", text: "text-green-500", fadedClass: "bg-green-500/10 border-green-500/30 text-green-500 hover:bg-green-500/20 hover:border-green-500/50" },
+    { id: "arkavati-lions", name: "Arkavati Lions", baseColor: "bg-yellow-500", ringColor: "ring-yellow-400", text: "text-yellow-500", fadedClass: "bg-yellow-500/10 border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/20 hover:border-yellow-500/50" },
   ];
 
+  const fetchRoster = async () => {
+    const supabase = createClient();
+    const { data } = await supabase.from('auction_groups').select('*').order('group_id');
+    if (data) setRoster(data);
+  };
+
   useEffect(() => {
-    const fetchRoster = async () => {
-      const supabase = createClient();
-      const { data } = await supabase.from('students').select('*').order('name');
-      if (data) setRoster(data);
-    };
     fetchRoster();
   }, []);
 
-  const uniqueSports = Array.from(new Set(roster.flatMap(s => s.sports || []))).sort();
+  const uniqueSports = Array.from(new Set(roster.map(g => g.sport).filter(Boolean))).sort();
   
-  const filteredRoster = roster.filter(s => {
-    const statusMatch = s.status === rosterFilter;
-    const sportMatch = sportFilter === 'All' || (s.sports && s.sports.includes(sportFilter));
+  const filteredRoster = roster.filter(g => {
+    const statusMatch = (g.sold_status || 'Available') === rosterFilter;
+    const sportMatch = sportFilter === 'All' || g.sport === sportFilter;
     return statusMatch && sportMatch;
   });
 
+  const getPlayersFromGroup = (group: any) => {
+    const players = [];
+    for (let i = 1; i <= 7; i++) {
+      if (group[`player_${i}`]) {
+        players.push({
+          name: group[`player_${i}`],
+          regNo: group[`reg_no_${i}`]
+        });
+      }
+    }
+    return players;
+  };
+
   const handleLoad = async () => {
-    if (!searchRoll) return;
+    if (!searchGroupId) return;
     setLoading(true);
     const supabase = createClient();
     
     const { data, error } = await supabase
-      .from('students')
+      .from('auction_groups')
       .select('*')
-      .ilike('roll_no', searchRoll.trim())
+      .ilike('group_id', searchGroupId.trim())
       .single();
       
     if (error || !data) {
-      alert("Player not found in database!");
-      setStudent(null);
+      alert("Group not found in database!");
+      setAuctionGroup(null);
       setBidAmount("");
       setSelectedHouse(null);
+      setBasePriceInput("");
     } else {
-      setStudent(data);
-      if (data.status === 'Sold') {
-        setBidAmount(data.sold_price?.toString() || "");
-        setSelectedHouse(data.house_id || null);
+      setAuctionGroup(data);
+      setBasePriceInput(data.base_price?.toString() || "");
+      if (data.sold_status === 'Sold') {
+        setBidAmount(data.sold_amount?.toString() || "");
+        setSelectedHouse(data.sold_to_house || null);
       } else {
         setBidAmount("");
         setSelectedHouse(null);
       }
-      // Auto-collapse roster when searching manually to save space
+      setShowRoster(false);
+    }
+    setLoading(false);
+  };
+
+  const handleLoadRegNo = async () => {
+    if (!searchRegNo) return;
+    setLoading(true);
+    const supabase = createClient();
+    
+    const query = searchRegNo.trim();
+    
+    const { data, error } = await supabase
+      .from('auction_groups')
+      .select('*')
+      .or(`reg_no_1.ilike.%${query}%,reg_no_2.ilike.%${query}%,reg_no_3.ilike.%${query}%,reg_no_4.ilike.%${query}%,reg_no_5.ilike.%${query}%,reg_no_6.ilike.%${query}%,reg_no_7.ilike.%${query}%`)
+      .limit(1)
+      .single();
+      
+    if (error || !data) {
+      alert("Player not found in any group!");
+      setAuctionGroup(null);
+      setBidAmount("");
+      setSelectedHouse(null);
+      setBasePriceInput("");
+    } else {
+      setAuctionGroup(data);
+      setBasePriceInput(data.base_price?.toString() || "");
+      if (data.sold_status === 'Sold') {
+        setBidAmount(data.sold_amount?.toString() || "");
+        setSelectedHouse(data.sold_to_house || null);
+      } else {
+        setBidAmount("");
+        setSelectedHouse(null);
+      }
       setShowRoster(false);
     }
     setLoading(false);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const loadFromRoster = (player: any) => {
-    setStudent(player);
-    if (player.status === 'Sold') {
-      setBidAmount(player.sold_price?.toString() || "");
-      setSelectedHouse(player.house_id || null);
+  const loadFromRoster = (group: any) => {
+    setAuctionGroup(group);
+    setBasePriceInput(group.base_price?.toString() || "");
+    if (group.sold_status === 'Sold') {
+      setBidAmount(group.sold_amount?.toString() || "");
+      setSelectedHouse(group.sold_to_house || null);
     } else {
       setBidAmount("");
       setSelectedHouse(null);
     }
-    setSearchRoll(player.roll_no);
+    setSearchGroupId(group.group_id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleUpdateBasePrice = async () => {
+    if (!auctionGroup) return;
+    setUpdatingBasePrice(true);
+    const supabase = createClient();
+    
+    const newBasePrice = Number(basePriceInput);
+    const { error } = await supabase
+      .from('auction_groups')
+      .update({ base_price: newBasePrice })
+      .eq('id', auctionGroup.id);
+      
+    if (error) {
+      alert("Error updating base price: " + error.message);
+    } else {
+      setAuctionGroup({ ...auctionGroup, base_price: newBasePrice });
+      // Update roster locally
+      setRoster(roster.map(g => g.id === auctionGroup.id ? { ...g, base_price: newBasePrice } : g));
+      alert("Base price updated successfully!");
+    }
+    setUpdatingBasePrice(false);
+  };
+
   const handleSold = async () => {
-    if (!student) {
-      alert("Please load a player first.");
+    if (!auctionGroup) {
+      alert("Please load a group first.");
       return;
     }
     if (!bidAmount || isNaN(Number(bidAmount)) || Number(bidAmount) <= 0) {
@@ -117,7 +194,7 @@ export default function Auction() {
       .single();
       
     if (houseFetchError || !houseData) {
-      alert("Error fetching house budget. Is the houses table created?");
+      alert("Error fetching house budget. Is the houses table populated?");
       return;
     }
     
@@ -126,7 +203,25 @@ export default function Auction() {
       return;
     }
     
-    // 2. Deduct budget
+    // 2. Find overlapping groups based on reg_no
+    const playersInGroup = getPlayersFromGroup(auctionGroup);
+    const regNos = playersInGroup.map(p => p.regNo).filter(Boolean);
+    
+    const { data: allGroups, error: allGroupsError } = await supabase.from('auction_groups').select('*');
+    if (allGroupsError) {
+      alert("Error fetching groups for overlap check.");
+      return;
+    }
+    
+    const overlappingGroups = allGroups.filter(g => {
+      const gRegNos = getPlayersFromGroup(g).map(p => p.regNo).filter(Boolean);
+      return regNos.some(r => gRegNos.includes(r));
+    });
+    
+    const overlappingGroupIds = overlappingGroups.map(g => g.id);
+    const isMultiple = overlappingGroupIds.length > 1;
+
+    // 3. Deduct budget (ONCE for the entire transaction)
     const newBudget = houseData.budget - Number(bidAmount);
     const { error: houseUpdateError } = await supabase
       .from('houses')
@@ -138,172 +233,56 @@ export default function Auction() {
       return;
     }
 
-    // 3. Update student status
-    let query = supabase.from('students').update({ status: 'Sold', house_id: selectedHouse, sold_price: Number(bidAmount) });
-    if (student.team_name) {
-      query = query.eq('team_name', student.team_name);
-    } else {
-      query = query.eq('id', student.id);
-    }
-    
-    const { error } = await query;
+    // 4. Update all overlapping groups
+    const { error } = await supabase
+      .from('auction_groups')
+      .update({ 
+        sold_status: 'Sold', 
+        sold_to_house: selectedHouse, 
+        sold_amount: Number(bidAmount),
+        sold_at: new Date().toISOString()
+      })
+      .in('id', overlappingGroupIds);
 
     if (error) {
       alert("Error updating database: " + error.message);
       return;
     }
 
-    alert(`Success! ${student.name} sold to ${houseName} for ₹${bidAmount}.`);
+    alert(`Success! Group ${auctionGroup.group_id} ${isMultiple ? '(and all overlapping groups) ' : ''}sold to ${houseName} for ₹${bidAmount}.`);
     
-    // Update local roster instantly
-    setRoster(roster.map(s => {
-      if (student.team_name && s.team_name === student.team_name) {
-         return { ...s, status: 'Sold', house_id: selectedHouse, sold_price: Number(bidAmount) };
-      } else if (!student.team_name && s.id === student.id) {
-         return { ...s, status: 'Sold', house_id: selectedHouse, sold_price: Number(bidAmount) };
-      }
-      return s;
-    }));
-
+    // Refresh fully
+    fetchRoster();
+    setAuctionGroup(null);
     setBidAmount("");
     setSelectedHouse(null);
-    setStudent(null);
-    setSearchRoll("");
+    setSearchGroupId("");
   };
 
   const handleUnsold = async () => {
-    if (!student) {
-      alert("Please load a player first.");
-      return;
-    }
-    if (confirm("Mark player as UNSOLD?")) {
+    if (!auctionGroup) return;
+    
+    if (confirm("Mark group as UNSOLD?")) {
       const supabase = createClient();
-      let query = supabase.from('students').update({ status: 'Unsold' });
-      if (student.team_name) {
-        query = query.eq('team_name', student.team_name);
-      } else {
-        query = query.eq('id', student.id);
-      }
       
-      const { error } = await query;
+      const { error } = await supabase
+        .from('auction_groups')
+        .update({ sold_status: 'Unsold' })
+        .eq('id', auctionGroup.id);
 
       if (error) {
         alert("Error updating database: " + error.message);
         return;
       }
       
-      alert(`${student.name} marked as Unsold.`);
+      alert(`Group ${auctionGroup.group_id} marked as Unsold.`);
       
-      // Update local roster instantly
-      setRoster(roster.map(s => {
-        if (student.team_name && s.team_name === student.team_name) {
-           return { ...s, status: 'Unsold' };
-        } else if (!student.team_name && s.id === student.id) {
-           return { ...s, status: 'Unsold' };
-        }
-        return s;
-      }));
-
+      fetchRoster();
+      setAuctionGroup(null);
       setBidAmount("");
       setSelectedHouse(null);
-      setStudent(null);
-      setSearchRoll("");
+      setSearchGroupId("");
     }
-  };
-
-  const handleUpdateSold = async () => {
-    if (!student || student.status !== 'Sold') return;
-    
-    if (!bidAmount || isNaN(Number(bidAmount)) || Number(bidAmount) <= 0) {
-      alert("Please enter a valid winning bid amount.");
-      return;
-    }
-    if (!selectedHouse) {
-      alert("Please select the winning house.");
-      return;
-    }
-
-    const newPrice = Number(bidAmount);
-    const oldPrice = student.sold_price || 0;
-    const oldHouseId = student.house_id;
-    const newHouseId = selectedHouse;
-
-    if (oldHouseId === newHouseId && oldPrice === newPrice) {
-      alert("No changes made.");
-      return;
-    }
-
-    const houseName = houses.find(h => h.id === selectedHouse)?.name;
-    const supabase = createClient();
-    
-    // Check new house budget if it's a different house, or if it's the same house and price increased
-    if (oldHouseId !== newHouseId) {
-      const { data: newHouseData, error: newHouseError } = await supabase.from('houses').select('budget').eq('id', newHouseId).single();
-      if (newHouseError || !newHouseData) {
-         alert("Error fetching new house budget.");
-         return;
-      }
-      if (newHouseData.budget < newPrice) {
-         alert(`Insufficient funds! ${houseName} only has ₹${newHouseData.budget.toLocaleString()} left.`);
-         return;
-      }
-      
-      // refund old house
-      if (oldHouseId) {
-         const { data: oldHouseData } = await supabase.from('houses').select('budget').eq('id', oldHouseId).single();
-         if (oldHouseData) {
-           await supabase.from('houses').update({ budget: oldHouseData.budget + oldPrice }).eq('id', oldHouseId);
-         }
-      }
-      
-      // charge new house
-      await supabase.from('houses').update({ budget: newHouseData.budget - newPrice }).eq('id', newHouseId);
-      
-    } else {
-      // same house
-      const budgetDiff = newPrice - oldPrice;
-      const { data: houseData, error: houseError } = await supabase.from('houses').select('budget').eq('id', newHouseId).single();
-      if (houseError || !houseData) {
-         alert("Error fetching house budget.");
-         return;
-      }
-      if (houseData.budget < budgetDiff) {
-         alert(`Insufficient funds! ${houseName} only has ₹${houseData.budget.toLocaleString()} left.`);
-         return;
-      }
-      await supabase.from('houses').update({ budget: houseData.budget - budgetDiff }).eq('id', newHouseId);
-    }
-
-    // Update student status
-    let query = supabase.from('students').update({ house_id: newHouseId, sold_price: newPrice });
-    if (student.team_name) {
-      query = query.eq('team_name', student.team_name);
-    } else {
-      query = query.eq('id', student.id);
-    }
-    
-    const { error } = await query;
-    if (error) {
-      alert("Error updating database: " + error.message);
-      return;
-    }
-    
-    alert(`Success! ${student.name}'s sold details updated to ${houseName} for ₹${newPrice}.`);
-    
-    // Update local roster instantly
-    setRoster(roster.map(s => {
-      if (student.team_name && s.team_name === student.team_name) {
-         return { ...s, house_id: newHouseId, sold_price: newPrice };
-      } else if (!student.team_name && s.id === student.id) {
-         return { ...s, house_id: newHouseId, sold_price: newPrice };
-      }
-      return s;
-    }));
-
-    setBidAmount("");
-    setSelectedHouse(null);
-    setStudent(null);
-    setSearchRoll("");
   };
 
   return (
@@ -316,28 +295,54 @@ export default function Auction() {
         
         <div className="flex-1 flex flex-col gap-6">
           
-          {/* Top Controls: Search OR Browse */}
+          {/* Top Controls */}
           <div className="flex flex-col gap-4">
-            {/* Search Bar */}
-            <div className="bg-card/80 backdrop-blur-sm p-4 border border-border/50 flex items-center gap-4 clip-angled shadow-lg">
-               <div className="relative flex-1">
-                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary w-5 h-5" />
-                 <input 
-                   type="text" 
-                   value={searchRoll}
-                   onChange={(e) => setSearchRoll(e.target.value)}
-                   onKeyDown={(e) => e.key === 'Enter' && handleLoad()}
-                   placeholder="ENTER REGISTRATION NUMBER..." 
-                   className="w-full pl-12 pr-4 py-3 bg-background border border-border/50 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-primary transition-colors text-foreground"
-                 />
+            <div className="bg-card/80 backdrop-blur-sm p-4 border border-border/50 flex flex-col gap-4 clip-angled shadow-lg">
+               
+               {/* Group ID Search */}
+               <div className="flex items-center gap-4">
+                 <div className="relative flex-1">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary w-5 h-5" />
+                   <input 
+                     type="text" 
+                     value={searchGroupId}
+                     onChange={(e) => setSearchGroupId(e.target.value)}
+                     onKeyDown={(e) => e.key === 'Enter' && handleLoad()}
+                     placeholder="ENTER GROUP ID (E.G. G01)" 
+                     className="w-full pl-12 pr-4 py-3 bg-background border border-border/50 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-primary transition-colors text-foreground"
+                   />
+                 </div>
+                 <button 
+                   onClick={handleLoad}
+                   disabled={loading}
+                   className="bg-primary/10 text-primary border border-primary/50 px-6 py-3 font-bold uppercase tracking-widest text-sm hover:bg-primary hover:text-white transition-all clip-angled disabled:opacity-50 min-w-[160px]"
+                 >
+                   {loading ? 'LOADING...' : 'LOAD GROUP'}
+                 </button>
                </div>
-               <button 
-                 onClick={handleLoad}
-                 disabled={loading}
-                 className="bg-primary/10 text-primary border border-primary/50 px-6 py-3 font-bold uppercase tracking-widest text-sm hover:bg-primary hover:text-white transition-all clip-angled disabled:opacity-50"
-               >
-                 {loading ? 'LOADING...' : 'LOAD PLAYER'}
-               </button>
+
+               {/* Registration Number Search */}
+               <div className="flex items-center gap-4">
+                 <div className="relative flex-1">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-accent w-5 h-5" />
+                   <input 
+                     type="text" 
+                     value={searchRegNo}
+                     onChange={(e) => setSearchRegNo(e.target.value)}
+                     onKeyDown={(e) => e.key === 'Enter' && handleLoadRegNo()}
+                     placeholder="ENTER REGISTRATION NUMBER..." 
+                     className="w-full pl-12 pr-4 py-3 bg-background border border-border/50 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-accent transition-colors text-foreground"
+                   />
+                 </div>
+                 <button 
+                   onClick={handleLoadRegNo}
+                   disabled={loading}
+                   className="bg-accent/10 text-accent border border-accent/50 px-6 py-3 font-bold uppercase tracking-widest text-sm hover:bg-accent hover:text-white transition-all clip-angled disabled:opacity-50 min-w-[160px]"
+                 >
+                   {loading ? 'LOADING...' : 'FIND PLAYER'}
+                 </button>
+               </div>
+               
             </div>
 
             {/* Roster Panel */}
@@ -348,14 +353,13 @@ export default function Auction() {
               >
                 <div className="flex items-center gap-3">
                   <Users className="text-primary w-5 h-5" />
-                  <span className="font-bold uppercase tracking-widest text-sm">Browse Roster</span>
+                  <span className="font-bold uppercase tracking-widest text-sm">Browse Groups</span>
                 </div>
                 {showRoster ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
               </button>
 
               {showRoster && (
                 <div className="p-4 border-t border-border/50 flex flex-col gap-4">
-                  {/* Sport Filter */}
                   <div className="flex gap-2 p-2 bg-background border border-border/50 clip-angled items-center">
                     <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-2">Sport:</span>
                     <select 
@@ -370,7 +374,6 @@ export default function Auction() {
                     </select>
                   </div>
 
-                  {/* Filter Tabs */}
                   <div className="flex gap-2 p-1 bg-background border border-border/50 clip-angled">
                     {(['Available', 'Sold', 'Unsold'] as const).map((status) => (
                       <button
@@ -381,26 +384,27 @@ export default function Auction() {
                           ${rosterFilter === status ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}
                         `}
                       >
-                        {status} ({roster.filter(s => s.status === status).length})
+                        {status} ({roster.filter(g => (g.sold_status || 'Available') === status).length})
                       </button>
                     ))}
                   </div>
 
-                  {/* Scrollable List */}
                   <div className="max-h-64 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
                     {filteredRoster.length > 0 ? (
-                      filteredRoster.map((player) => (
+                      filteredRoster.map((group) => (
                         <button
-                          key={player.id}
-                          onClick={() => loadFromRoster(player)}
+                          key={group.id}
+                          onClick={() => loadFromRoster(group)}
                           className="w-full text-left bg-background border border-border/50 p-3 flex justify-between items-center hover:border-primary/50 group transition-colors clip-angled"
                         >
                           <div className="flex flex-col">
-                            <span className="font-bold text-foreground group-hover:text-primary transition-colors">{player.name}</span>
-                            <span className="text-xs font-mono text-muted-foreground">{player.roll_no}</span>
+                            <span className="font-bold text-foreground group-hover:text-primary transition-colors uppercase tracking-widest">
+                              {group.group_id}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{group.category} • {group.total_sports} Sports</span>
                           </div>
-                          {player.status === 'Sold' ? (
-                            <span className="text-xs font-bold uppercase text-red-500 bg-red-500/10 px-2 py-1">₹{player.sold_price}</span>
+                          {(group.sold_status || 'Available') === 'Sold' ? (
+                            <span className="text-xs font-bold uppercase text-red-500 bg-red-500/10 px-2 py-1">₹{group.sold_amount}</span>
                           ) : (
                             <span className="text-xs font-bold uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
                           )}
@@ -408,7 +412,7 @@ export default function Auction() {
                       ))
                     ) : (
                       <div className="text-center p-4 text-sm font-bold uppercase tracking-widest text-muted-foreground border border-dashed border-border/50 clip-angled">
-                        No {rosterFilter} players found.
+                        No {rosterFilter} groups found.
                       </div>
                     )}
                   </div>
@@ -417,63 +421,82 @@ export default function Auction() {
             </div>
           </div>
 
-          <div className="bg-card border border-border/50 flex flex-col overflow-hidden relative group clip-angled h-full min-h-[400px]">
+          {/* Group Profile */}
+          <div className="bg-card border border-border/50 flex flex-col overflow-hidden relative group clip-angled h-full min-h-[500px]">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary"></div>
             
-            {student ? (
-              <>
-                <div className="p-8 text-center border-b border-border/50 relative overflow-hidden flex-1 flex flex-col justify-center">
+            {auctionGroup ? (
+              <div className="flex flex-col h-full">
+                <div className="p-8 border-b border-border/50 relative overflow-hidden flex flex-col justify-center items-center">
                   <div className="absolute inset-0 bg-primary/5"></div>
                   
-                  {student.status === 'Sold' && (
+                  {auctionGroup.sold_status === 'Sold' && (
                     <div className="absolute top-4 right-4 rotate-12 z-20">
                       <span className="border-4 border-red-500 text-red-500 font-black text-2xl uppercase tracking-widest px-4 py-1 inline-block bg-background/90 clip-angled shadow-lg">SOLD</span>
                     </div>
                   )}
-                  {student.status === 'Unsold' && (
+                  {auctionGroup.sold_status === 'Unsold' && (
                     <div className="absolute top-4 right-4 rotate-12 z-20">
                       <span className="border-4 border-muted-foreground text-muted-foreground font-black text-2xl uppercase tracking-widest px-4 py-1 inline-block bg-background/90 clip-angled shadow-lg">UNSOLD</span>
                     </div>
                   )}
 
-                  {student.team_name && (
-                    <div className="absolute top-4 left-4 z-20">
-                      <span className="border-2 border-accent text-accent font-bold text-xs uppercase tracking-widest px-3 py-1 inline-block bg-background/90 clip-angled shadow-lg">
-                        TEAM AUCTION: {student.team_name}
-                      </span>
-                    </div>
-                  )}
-
-                  <p className="text-sm font-bold uppercase tracking-widest mb-2 text-primary relative z-10">
-                    {student.status === 'Sold' ? `Sold to: ${houses.find(h => h.id === student.house_id)?.name} for ₹${student.sold_price}` : 'Currently on the block'}
+                  <p className="text-sm font-bold uppercase tracking-widest mb-2 text-primary relative z-10 text-center">
+                    {auctionGroup.sold_status === 'Sold' ? `Sold to: ${houses.find(h => h.id === auctionGroup.sold_to_house)?.name} for ₹${auctionGroup.sold_amount}` : 'Currently on the block'}
                   </p>
-                  <h2 className="text-5xl md:text-7xl font-display font-black tracking-wider text-white relative z-10 uppercase">{student.name}</h2>
-                  <p className="text-xl font-mono text-muted-foreground mt-4 relative z-10">{student.roll_no}</p>
-                </div>
-                
-                {student.sports && student.sports.length > 0 && (
-                  <div className="p-8 flex-1 flex flex-col justify-center bg-card/50">
-                    <h3 className="text-sm font-bold uppercase tracking-widest mb-6 text-center text-muted-foreground">Registered Sports</h3>
-                    <div className="flex flex-wrap justify-center gap-4">
-                      {student.sports.map((sport: string) => (
-                        <div key={sport} className="bg-background px-8 py-4 border border-border/50 flex justify-center items-center clip-angled hover:border-primary/50 transition-colors">
-                          <span className="font-bold uppercase tracking-wider text-foreground">{sport}</span>
-                        </div>
-                      ))}
+                  <h2 className="text-5xl md:text-7xl font-display font-black tracking-wider text-white relative z-10 uppercase text-center">{auctionGroup.group_id}</h2>
+                  
+                  <div className="flex gap-4 mt-4 relative z-10">
+                     <span className="px-3 py-1 bg-background border border-border/50 text-xs font-bold uppercase tracking-widest">{auctionGroup.category}</span>
+                     <span className="px-3 py-1 bg-background border border-border/50 text-xs font-bold uppercase tracking-widest">{auctionGroup.sport}</span>
+                  </div>
+
+                  {/* Base Amount Control */}
+                  <div className="mt-8 relative z-10 bg-background/80 backdrop-blur p-4 border border-border/50 flex flex-col items-center clip-angled w-full max-w-sm mx-auto shadow-lg">
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Base Amount</label>
+                    <div className="flex w-full gap-2">
+                       <input 
+                         type="number" 
+                         value={basePriceInput}
+                         onChange={(e) => setBasePriceInput(e.target.value)}
+                         className="flex-1 bg-card border border-border/50 px-4 py-2 text-center font-bold text-lg focus:border-primary outline-none"
+                         placeholder="₹0"
+                       />
+                       <button 
+                         onClick={handleUpdateBasePrice}
+                         disabled={updatingBasePrice}
+                         className="bg-primary/20 text-primary border border-primary/50 hover:bg-primary hover:text-white px-4 flex items-center justify-center transition-colors disabled:opacity-50"
+                         title="Save Base Price"
+                       >
+                         <Save size={20} />
+                       </button>
                     </div>
                   </div>
-                )}
-              </>
+                </div>
+                
+                <div className="p-8 flex-1 flex flex-col bg-card/50">
+                  <h3 className="text-sm font-bold uppercase tracking-widest mb-6 text-center text-muted-foreground">Players in Group ({auctionGroup.total_sports} Sports, {auctionGroup.total_teams} Teams)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {getPlayersFromGroup(auctionGroup).map((player, idx) => (
+                      <div key={idx} className="bg-background p-4 border border-border/50 flex flex-col clip-angled hover:border-primary/50 transition-colors">
+                        <span className="font-bold uppercase tracking-wider text-foreground">{player.name}</span>
+                        <span className="text-xs font-mono text-muted-foreground mt-1">{player.regNo}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-muted-foreground/50">
                 <Search className="w-16 h-16 mb-4 opacity-50" />
-                <p className="font-bold uppercase tracking-widest text-lg">No Player Loaded</p>
-                <p className="text-sm mt-2 max-w-sm text-center">Enter a registration number above or browse the roster to load their profile.</p>
+                <p className="font-bold uppercase tracking-widest text-lg">No Group Loaded</p>
+                <p className="text-sm mt-2 max-w-sm text-center">Enter a group ID above or browse to load a profile.</p>
               </div>
             )}
           </div>
         </div>
 
+        {/* Right side Bid Panel */}
         <div className="w-full md:w-[32rem] flex flex-col gap-6">
           <div className="bg-card border border-border/50 p-8 flex flex-col gap-8 clip-angled relative shadow-lg">
             <div className="text-center">
@@ -492,7 +515,7 @@ export default function Auction() {
                 value={bidAmount}
                 onChange={(e) => setBidAmount(e.target.value)}
                 onWheel={(e) => (e.target as HTMLElement).blur()}
-                disabled={!student || (student.status !== 'Available' && student.status !== 'Sold')}
+                disabled={!auctionGroup || auctionGroup.sold_status === 'Sold'}
                 placeholder="0"
                 className="w-full text-7xl font-display font-black text-center py-6 bg-background border-2 border-border/50 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all text-white placeholder:text-muted-foreground/30 clip-diagonal outline-none disabled:opacity-50"
               />
@@ -507,7 +530,7 @@ export default function Auction() {
                   <button 
                     key={house.id}
                     onClick={() => setSelectedHouse(house.id)}
-                    disabled={!student || (student.status !== 'Available' && student.status !== 'Sold')}
+                    disabled={!auctionGroup || auctionGroup.sold_status === 'Sold'}
                     className={`
                       font-display font-bold text-xl uppercase tracking-wider py-4 transition-all rounded-xl border-2 outline-none
                       ${selectedHouse === house.id 
@@ -523,26 +546,16 @@ export default function Auction() {
             </div>
 
             <div className="flex flex-col gap-4 mt-2">
-              {student?.status === 'Sold' ? (
-                <button 
-                  onClick={handleUpdateSold}
-                  disabled={!student}
-                  className="bg-orange-500 hover:bg-orange-600 text-background text-3xl font-display font-black uppercase tracking-widest py-6 transition-all clip-diagonal flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  UPDATE SOLD DETAILS
-                </button>
-              ) : (
-                <button 
-                  onClick={handleSold}
-                  disabled={!student || student.status !== 'Available'}
-                  className="bg-accent hover:bg-accent/90 text-background text-3xl font-display font-black uppercase tracking-widest py-6 transition-all clip-diagonal glow-accent flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  CONFIRM SOLD
-                </button>
-              )}
+              <button 
+                onClick={handleSold}
+                disabled={!auctionGroup || auctionGroup.sold_status === 'Sold'}
+                className="bg-accent hover:bg-accent/90 text-background text-3xl font-display font-black uppercase tracking-widest py-6 transition-all clip-diagonal glow-accent flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                CONFIRM SOLD
+              </button>
               <button 
                 onClick={handleUnsold}
-                disabled={!student || student.status !== 'Available'}
+                disabled={!auctionGroup || auctionGroup.sold_status === 'Sold'}
                 className="bg-background border-2 border-red-500/50 hover:bg-red-500/10 text-red-500 font-bold uppercase tracking-widest py-4 transition-all clip-diagonal disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 MARK UNSOLD
