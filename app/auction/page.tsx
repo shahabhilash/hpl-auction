@@ -14,8 +14,7 @@ export default function Auction() {
   const [auctionGroup, setAuctionGroup] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   
-  const [basePriceInput, setBasePriceInput] = useState<string>("");
-  const [updatingBasePrice, setUpdatingBasePrice] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Roster States
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,11 +96,9 @@ export default function Auction() {
       setAuctionGroup(null);
       setBidAmount("");
       setSelectedHouse(null);
-      setBasePriceInput("");
     } else {
       const syntheticGroup = { ...data[0], rows: data, all_sports: data.map(r => r.sport).filter(Boolean) };
       setAuctionGroup(syntheticGroup);
-      setBasePriceInput(data[0].base_price?.toString() || "");
       if (data[0].sold_status === 'Sold') {
         setBidAmount(data[0].sold_amount?.toString() || "");
         setSelectedHouse(data[0].sold_to_house || null);
@@ -132,13 +129,11 @@ export default function Auction() {
       setAuctionGroup(null);
       setBidAmount("");
       setSelectedHouse(null);
-      setBasePriceInput("");
     } else {
       const { data } = await supabase.from('auction_groups').select('*').eq('group_id', matchData.group_id);
       if (data && data.length > 0) {
         const syntheticGroup = { ...data[0], rows: data, all_sports: data.map(r => r.sport).filter(Boolean) };
         setAuctionGroup(syntheticGroup);
-        setBasePriceInput(data[0].base_price?.toString() || "");
         if (data[0].sold_status === 'Sold') {
           setBidAmount(data[0].sold_amount?.toString() || "");
           setSelectedHouse(data[0].sold_to_house || null);
@@ -155,7 +150,6 @@ export default function Auction() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const loadFromRoster = (group: any) => {
     setAuctionGroup(group);
-    setBasePriceInput(group.base_price?.toString() || "");
     if (group.sold_status === 'Sold') {
       setBidAmount(group.sold_amount?.toString() || "");
       setSelectedHouse(group.sold_to_house || null);
@@ -167,29 +161,7 @@ export default function Auction() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleUpdateBasePrice = async () => {
-    if (!auctionGroup) return;
-    setUpdatingBasePrice(true);
-    const supabase = createClient();
-    const newBasePrice = Number(basePriceInput);
-    
-    const rows = auctionGroup.rows || [auctionGroup];
-    const ids = rows.map((r: any) => r.id);
-    
-    const { error } = await supabase
-      .from('auction_groups')
-      .update({ base_price: newBasePrice })
-      .in('id', ids);
-      
-    if (error) {
-      alert("Error updating base price: " + error.message);
-    } else {
-      setAuctionGroup({ ...auctionGroup, base_price: newBasePrice });
-      setRoster(roster.map(g => g.group_id === auctionGroup.group_id ? { ...g, base_price: newBasePrice } : g));
-      alert("Base price updated successfully!");
-    }
-    setUpdatingBasePrice(false);
-  };
+
 
   const getOverlappingRowIds = (targetGroupId: string, allGroups: any[]) => {
     const affectedGroupIds = new Set<string>([targetGroupId]);
@@ -618,26 +590,12 @@ export default function Auction() {
                      )}
                   </div>
 
-                  {/* Base Amount Control */}
-                  <div className="mt-8 relative z-10 bg-background/80 backdrop-blur p-4 border border-border/50 flex flex-col items-center clip-angled w-full max-w-sm mx-auto shadow-lg">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Base Amount</label>
-                    <div className="flex w-full gap-2">
-                       <input 
-                         type="number" 
-                         value={basePriceInput}
-                         onChange={(e) => setBasePriceInput(e.target.value)}
-                         className="flex-1 bg-card border border-border/50 px-4 py-2 text-center font-bold text-lg focus:border-primary outline-none"
-                         placeholder="₹0"
-                       />
-                       <button 
-                         onClick={handleUpdateBasePrice}
-                         disabled={updatingBasePrice}
-                         className="bg-primary/20 text-primary border border-primary/50 hover:bg-primary hover:text-white px-4 flex items-center justify-center transition-colors disabled:opacity-50"
-                         title="Save Base Price"
-                       >
-                         <Save size={20} />
-                       </button>
-                    </div>
+                  {/* Base Amount Display */}
+                  <div className="mt-8 relative z-10 bg-background/80 backdrop-blur px-8 py-4 border border-border/50 flex flex-col items-center clip-angled shadow-lg">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Base Amount</span>
+                    <span className="font-display font-black text-3xl text-primary tracking-wider">
+                      ₹{auctionGroup.base_price?.toLocaleString() || 0}
+                    </span>
                   </div>
                 </div>
                 
